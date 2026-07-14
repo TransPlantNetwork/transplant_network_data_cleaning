@@ -24,9 +24,14 @@ CleanCommunity_FR_AlpeHuez <- function(community_FR_AlpeHuez_raw){
      mutate(SpeciesName = sub("^(\\S*\\s+\\S+).*", "\\1", SpeciesName)) %>%     # This selects only the first two words in SpeciesName.
       filter(Treatment %in% c("HIGH_TURF", "LOW_TURF")) %>% 
       mutate(Date = case_when(
-        str_detect(Date, "^\\d{4}-\\d{2}-\\d{2}$") ~ as.Date(Date, format = "%Y-%m-%d"),
-        str_detect(Date, "^\\d{2}/\\d{2}/\\d{4}$") ~ as.Date(Date, format = "%m/%d/%Y"),
-        str_detect(Date, "^\\d{2}/\\d{2}/\\d{2}$") ~ as.Date(Date, format = "%d/%m/%Y"),
+        # Numeric dates (Excel serial numbers)
+        str_detect(Date, "^\\d+$") ~ as.Date(as.numeric(Date), origin = "1899-12-30"),
+        
+        # Handling dates with single or double digit months/days using lubridate's flexible parser
+        str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{4}$") ~ mdy(Date),  # Handles mm/dd/yyyy without leading zero
+        str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{2}$") ~ mdy(Date),  # Handles mm/dd/yy for 2-digit years
+        str_detect(Date, "^\\d{4}-\\d{2}-\\d{2}$") ~ ymd(Date),      # ISO date yyyy-mm-dd
+        
         TRUE ~ NA_Date_))%>%
       mutate(originSiteID = str_replace(Treatment, '(.*)_.*', "\\1"), 
              originSiteID = toupper(originSiteID),

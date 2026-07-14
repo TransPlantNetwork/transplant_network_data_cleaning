@@ -80,6 +80,7 @@ vignettes/*.pdf
 /climate/*
 /data/*
 /figures/*
+/archieve_data/
 
 *.DS_Store
 *_DS_Store
