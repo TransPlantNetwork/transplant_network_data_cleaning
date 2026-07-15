@@ -14,8 +14,9 @@ tar_option_set(
     "e1071",
     "DBI",
     "RSQLite",
-    "visNetwork"
-  ) 
+    "visNetwork",
+    "dataDownloader"
+  )
   # format = "qs", # Optionally set the default storage format. qs is fast.
   #
   # Pipelines that take a long time to run may benefit from
