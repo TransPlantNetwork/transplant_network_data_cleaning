@@ -56,9 +56,9 @@ tar_source()
 # tar_source("other_functions.R") # Source other scripts as needed.
 
 #Combine target plans
+# here we add all the plans that we want and split them into logical cleaning steps
 combined_plan <- c(
   download_plan,
   harmonization_plan,
-  cleaning_plan,
   validation_plan
 )
