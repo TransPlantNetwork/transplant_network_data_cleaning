@@ -22,9 +22,21 @@ vignettes/*.pdf
 #markdown cache
 *_cache/
 
-#drake cache
+# workflow caches (rebuilt locally; do not commit)
 .drake/
+_targets/
 
+# editor and OS junk
+*.swp
+*.swo
+*~
+._*
+*.DS_Store
+*_DS_Store
+
+# local secrets (e.g. OSF tokens for data download)
+.Renviron
+.Renviron.local
 
 #data
 *.txt
@@ -81,6 +93,3 @@ vignettes/*.pdf
 /data/*
 /figures/*
 /archieve_data/
-
-*.DS_Store
-*_DS_Store
