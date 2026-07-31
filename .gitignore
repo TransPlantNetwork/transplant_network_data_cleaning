@@ -1,95 +1,30 @@
-# History files
+# R session and IDE
 .Rhistory
 .Rapp.history
-
-# Session Data files
 .RData
-
-# Example code in package build process
-*-Ex.R
-
-# RStudio files
 .Rproj.user/
 
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
-
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
+# OAuth / API tokens
 .httr-oauth
-.Rproj.user
+.Renviron
+.Renviron.local
 
-#markdown cache
+# Knitr / report caches
 *_cache/
 
-# workflow caches (rebuilt locally; do not commit)
+# Pipeline caches (rebuilt locally)
 .drake/
 _targets/
 
-# editor and OS junk
+# Editor and OS junk
 *.swp
 *.swo
 *~
 ._*
 *.DS_Store
-*_DS_Store
 
-# local secrets (e.g. OSF tokens for data download)
-.Renviron
-.Renviron.local
-
-#data
-*.txt
-*.hobo
-*.xls
-*.csv
-*.Rdata
-#!metaCH.Rdata
-#!metaCommunity_CH_2012_2016.Rdata
-*.odb
-*.zip
-*.jpg
-*.sql
-*.xlsx
-*.docx
-*.xlsx#
-*.rar
-*.sqlite
-*.dat
-*.RData.Tmp1
-*.rds
-*.rtf
-*.tiff
-*.tif
-*.xlsm
-
-
-#rasters & shapefiles
-*.bil
-*.blw
-*.hdr
-*.prj
-*.hproj
-
-#climate data
-*.pre.dat.nc
-*.pre.dat.nc.gz
-*.tmp.dat.nc
-*.tmp.dat.nc.gz
-*.elv
-*.elvZ
-
-#figures & output
-*.png
-*.html
-*.pdf
-*.jpeg
-.my.cnf
-*.md
-*.doc
-
-# Data/image directories
-/climate/*
-/data/*
-/figures/*
+# Local data and outputs
+/data/
+/climate/
+/figures/
 /archieve_data/
