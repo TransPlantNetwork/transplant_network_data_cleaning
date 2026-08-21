@@ -11,5 +11,41 @@ To find the traits dataset, run the runsource_traitplan.R. This will source the 
 * **Chelsea Chisholm** - chelsea.chisholm@gmail.com
 * **Dagmar Egelkraut** - Dagmar.Egelkraut@uib.no
 
+## Using targets
 
+The pipeline is defined in `_targets.R`, which combines plan files from `R/` (e.g. `download_plan.R`, `harmonization_plan.R`, `validation_plan.R`). Custom functions live in `R/functions/` and are loaded with `tar_source()`.
+
+To run the pipeline:
+
+```r
+source("run.R")
+# or
+targets::tar_make()
+```
+
+Useful checks:
+
+```r
+targets::tar_visnetwork()   # dependency graph
+targets::tar_outdated()     # which targets need to run
+targets::tar_load(name)     # load a built target into the session
+```
+
+Add new steps as `tar_target()` (or `tar_plan()`) entries in the relevant plan file under `R/`.
+
+## Using renv
+
+This project uses [renv](https://rstudio.github.io/renv/) so everyone works with the same package versions. After cloning the repo, open the project and restore the library from `renv.lock`:
+
+```r
+renv::restore()
+```
+
+When you add or update packages:
+
+1. Add the package to `DESCRIPTION` (`Imports:`; use `Remotes:` for GitHub packages).
+2. Run `renv::install()` then `renv::snapshot()`.
+3. Commit the updated `DESCRIPTION` and `renv.lock`.
+
+Do not commit `renv/library/` — it is local and ignored by git.
 
