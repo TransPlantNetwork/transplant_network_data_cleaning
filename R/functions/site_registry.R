@@ -143,9 +143,12 @@ site_pipeline_config <- list(
     ),
     id_components = c("Year", "originSiteID", "destSiteID", "destBlockID", "Treatment", "destPlotID", "turfID"),
     non_vascular = c("Other"),
+    # Raw TTtreat codes from the sqlite database map directly to canonical
+    # Treatment values (the legacy loader did this via an intermediate
+    # "control"/"warm1"/... step during import, but that's not needed here).
     treatment_map = c(
-      "control" = "Control", "local" = "LocalControl",
-      "warm1" = "Warm", "cool1" = "Cold", "warm3" = "Warm", "cool3" = "Cold"
+      "C" = "Control", "O" = "LocalControl",
+      "1" = "Warm", "2" = "Cold", "3" = "Warm", "4" = "Cold"
     ),
     meta_table = tibble::tribble(
       ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
