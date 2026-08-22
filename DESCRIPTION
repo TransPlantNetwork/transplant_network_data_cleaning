@@ -12,7 +12,15 @@ Imports:
     e1071,
     DBI,
     RSQLite,
+    dbplyr,
     visNetwork,
-    dataDownloader
+    dataDownloader,
+    yaml,
+    TNRS
+Suggests:
+    testthat,
+    waldo,
+    diffdf
 Remotes:
-    Between-the-Fjords/dataDownloader
+    Between-the-Fjords/dataDownloader,
+    EnquistLab/RTNRS
