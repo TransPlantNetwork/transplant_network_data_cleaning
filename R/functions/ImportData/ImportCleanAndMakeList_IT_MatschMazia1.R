@@ -1,32 +1,32 @@
 ####################
-### IT_MatschMazia2  ###
+### IT_MatschMazia1  ###
 ####################
 
-source("R/ImportData/community_IT_MatschMazia/loadcomm_IT.r")
+source("R/functions/ImportData/community_IT_MatschMazia/loadcomm_IT.r")
 
 #### Import Community ####
-ImportCommunity_IT_MatschMazia2 <- function(){
-  community_IT_MatschMazia2_raw<-load_cover_IT_MatschMazia2()
-  return(community_IT_MatschMazia2_raw)
+ImportCommunity_IT_MatschMazia1 <- function(){
+  community_IT_MatschMazia1_raw<-load_cover_IT_MatschMazia1()
+  return(community_IT_MatschMazia1_raw)
 } 
 
 
 #### Cleaning Code ####
 # Cleaning Lautaret community data
-CleanCommunity_IT_MatschMazia2 <- function(community_IT_MatschMazia2_raw){
-  dat <- community_IT_MatschMazia2_raw %>% 
+CleanCommunity_IT_MatschMazia1 <- function(community_IT_MatschMazia1_raw){
+  dat <- community_IT_MatschMazia1_raw %>% 
     rename(Year=year, Elevation=elevation) %>%
     gather(SpeciesName, Cover, -UniqueID, -Elevation, -treat, -Year) %>%
     filter(!is.na(Cover)) %>%
     mutate(SpeciesName = gsub('\\_', ' ', SpeciesName)) %>%
-    mutate(destSiteID = case_when(Elevation == 1500 ~ "Low",
-                                    Elevation == 1950 ~ "High"),
-            Treatment = case_when(treat == "originControl" ~ "LocalControl", #there was a labeling mistake where they were both labelled origincontrol (one with an s)
+    mutate(destSiteID = case_when(Elevation == 1000 ~ "Low",
+                                    Elevation == 1500 ~ "High"),
+            Treatment = case_when(treat == "destControl" ~ "LocalControl",
                                  treat == "originControls"  ~ "LocalControl",
                                 treat == "warmed" ~ "Warm"),
-            originSiteID = case_when(Elevation == 1500 & Treatment == "LocalControl" ~ "Low",
-                                   Elevation == 1950 ~ "High",
-                                   Treatment == 'Warm' ~ 'High')) %>% 
+            originSiteID = case_when(Elevation == 1000 & treat == "destControl" ~ "Low",
+                                   Elevation == 1500 ~ "High",
+                                   treat == 'warmed' ~ 'High')) %>% 
     select(Year, destSiteID, originSiteID, UniqueID, Treatment, SpeciesName, Cover, -treat) %>% 
     extract(UniqueID, into = c("destPlotID", "year"), "(.*)_([^_]+)$") %>% 
     mutate(UniqueID = paste(originSiteID, destSiteID, destPlotID, sep='_')) %>%  
@@ -51,22 +51,22 @@ CleanCommunity_IT_MatschMazia2 <- function(community_IT_MatschMazia2_raw){
 }
 
 # Clean taxa list (add these to end of above)
-CleanTaxa_IT_MatschMazia2 <- function(community_IT_MatschMazia2){
-  taxa <- unique(community_IT_MatschMazia2$SpeciesName)
+CleanTaxa_IT_MatschMazia1 <- function(community_IT_MatschMazia1){
+  taxa <- unique(community_IT_MatschMazia1$SpeciesName)
   return(taxa)
 }
 
 # Clean metadata
-CleanMeta_IT_MatschMazia2 <- function(community_IT_MatschMazia2){
-  dat <- community_IT_MatschMazia2 %>%
+CleanMeta_IT_MatschMazia1 <- function(community_IT_MatschMazia1){
+  dat <- community_IT_MatschMazia1 %>%
     select(destSiteID, Year) %>%
     group_by(destSiteID) %>%
     summarize(YearMin = min(Year), YearMax = max(Year)) %>%
-    mutate(Elevation = as.numeric(recode(destSiteID, 'High' = 1950, 'Low' = 1500)),
-           Gradient = 'IT_MatschMazia2',
+    mutate(Elevation = as.numeric(recode(destSiteID, 'High' = 1500, 'Low' = 1000)),
+           Gradient = 'IT_MatschMazia1',
            Country = 'Italy',
-           Longitude = as.numeric(recode(destSiteID, 'High' = 10.59195399, 'Low' = 10.5797899)), #ADD IN COORDS FOR LOW
-           Latitude = as.numeric(recode(destSiteID, 'High' = 46.6916840, 'Low' = 46.6862599)), #ADD IN COORDS FOR LOW
+           Longitude = as.numeric(recode(destSiteID, 'Low' = 10.5902491243, 'High' = 10.5797899)), #ADD IN COORDS FOR LOW
+           Latitude = as.numeric(recode(destSiteID, 'Low' = 46.6612188656, 'High' = 46.6862599)), #ADD IN COORDS FOR LOW
            YearEstablished = 2010,
            PlotSize_m2 = 0.25) %>% 
     mutate(YearRange = (YearMax-YearEstablished)) %>% 
@@ -75,20 +75,21 @@ CleanMeta_IT_MatschMazia2 <- function(community_IT_MatschMazia2){
   return(dat)
 }
 
+
 #Clean trait data
-CleanTrait_IT_MatschMazia2 <- function(trait_IT_MatschMazia2_raw){
-  trait <- trait_IT_MatschMazia2_raw %>%
+CleanTrait_IT_MatschMazia1 <- function(trait_IT_MatschMazia1_raw){
+  trait <- trait_IT_MatschMazia1_raw %>%
     rename(Elevation = elevation, SpeciesName = Species, Individual_number = `Rep-ID`) %>%
-    filter(Elevation != "989.8") %>%
+    filter(Elevation != 2026.09) %>%
     rename(Wet_Mass_g = "Fresh weight, 1 leaf [g]", Dry_Mass_g = "Dry weight, 1 leaf [mg]", Leaf_Area_cm2 = "Leaf area [cm2], 1 leaf", Plant_Veg_Height_cm = "VegHt [cm]", Plant_Rep_Height_cm = "RepHt [cm]",
            LDMC = "LDMC [mg g-1]", SLA_mm2_mg = "SLA [mm2 mg-1]",  C_percent = "Carbon [%]", N_percent = "Nitrogen [%]", N_conc_mg_g = "LNC [mg g-1]", C_conc_mg_g = "LCC [mg g-1]"  ) %>%
     mutate_all(~gsub(',','', .)) %>%
     mutate(Country = "Italy",
-           Gradient = "IT_MatschMazia2",
-           destSiteID = recode(Elevation,  "1476.46" = "Low", "2026.09" = "High"),
+           Gradient = "IT_MatschMazia1",
+           destSiteID = recode(Elevation,  "989.8" = "Low", "1476.46" = "High"),
            SLA_cm2_g = 10*as.numeric(SLA_mm2_mg),
-           CN_ratio = as.numeric(C_percent)/as.numeric(N_percent),
-           LDMC = as.numeric(LDMC)/1000) %>%
+           LDMC = as.numeric(LDMC)/1000,
+           CN_ratio = as.numeric(C_percent)/as.numeric(N_percent)) %>%
     mutate(across(Plant_Veg_Height_cm:C_conc_mg_g, ~as.numeric(.x)))%>%
     mutate(Individual_number = str_extract(Individual_number, "\\d+$"))%>%
     dplyr::select(Country, Gradient, destSiteID, SpeciesName, Individual_number, Plant_Veg_Height_cm:C_conc_mg_g) %>%
@@ -100,28 +101,28 @@ CleanTrait_IT_MatschMazia2 <- function(trait_IT_MatschMazia2_raw){
 }
 
 #### IMPORT, CLEAN AND MAKE LIST #### 
-ImportClean_IT_MatschMazia2 <- function(){
+ImportClean_IT_MatschMazia1 <- function(){
   
   ### IMPORT DATA
-  community_IT_MatschMazia2_raw = ImportCommunity_IT_MatschMazia2()
-  trait_IT_MatschMazia2_raw = read_excel("./data/IT_MatschMazia/IT_MatschMazia_traitdata/Plant_Traits_Matsch_TRY_Contribution_names.xlsx", na="na")
+  community_IT_MatschMazia1_raw = ImportCommunity_IT_MatschMazia1()
+  trait_IT_MatschMazia1_raw = read_excel("./data/IT_MatschMazia/IT_MatschMazia_traitdata/Plant_Traits_Matsch_TRY_Contribution_names.xlsx", na="na")
   
   ### CLEAN DATA SETS
-  cleaned_IT_MatschMazia2 = CleanCommunity_IT_MatschMazia2(community_IT_MatschMazia2_raw)
-  community_IT_MatschMazia2 = cleaned_IT_MatschMazia2$comm
-  cover_IT_MatschMazia2 = cleaned_IT_MatschMazia2$cover
-  meta_IT_MatschMazia2 = CleanMeta_IT_MatschMazia2(community_IT_MatschMazia2) 
-  taxa_IT_MatschMazia2 = CleanTaxa_IT_MatschMazia2(community_IT_MatschMazia2)
-  trait_IT_MatschMazia2 = CleanTrait_IT_MatschMazia1(trait_IT_MatschMazia2_raw)
+  cleaned_IT_MatschMazia1 = CleanCommunity_IT_MatschMazia1(community_IT_MatschMazia1_raw)
+  community_IT_MatschMazia1 = cleaned_IT_MatschMazia1$comm
+  cover_IT_MatschMazia1 = cleaned_IT_MatschMazia1$cover
+  meta_IT_MatschMazia1 = CleanMeta_IT_MatschMazia1(community_IT_MatschMazia1) 
+  taxa_IT_MatschMazia1 = CleanTaxa_IT_MatschMazia1(community_IT_MatschMazia1)
+  trait_IT_MatschMazia1 = CleanTrait_IT_MatschMazia1(trait_IT_MatschMazia1_raw)
   
   
   # Make list
-  IT_MatschMazia2 = list(meta = meta_IT_MatschMazia2,
-                     community = community_IT_MatschMazia2,
-                     cover = cover_IT_MatschMazia2,
-                     taxa = taxa_IT_MatschMazia2,
-                     trait = trait_IT_MatschMazia2)
+  IT_MatschMazia1 = list(meta = meta_IT_MatschMazia1,
+                     community = community_IT_MatschMazia1,
+                     cover = cover_IT_MatschMazia1,
+                     taxa = taxa_IT_MatschMazia1,
+                     trait = trait_IT_MatschMazia1)
   
-  return(IT_MatschMazia2)
+  return(IT_MatschMazia1)
 }
 

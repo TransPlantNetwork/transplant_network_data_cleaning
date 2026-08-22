@@ -2,7 +2,7 @@
 #### CH_CALANDA  ####
 #####################
 
-source("R/ImportData/community_CH_Calanda/load_comm_cal.r")
+source("R/functions/ImportData/community_CH_Calanda/load_comm_cal.r")
 
 #### Import Community ####
 ImportCommunity_CH_Calanda <- function(){

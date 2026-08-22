@@ -2,7 +2,7 @@
 ### CH_LAVEY  ####
 ##################
 
-source("R/ImportData/community_CH_Lavey/load_comm.r")
+source("R/functions/ImportData/community_CH_Lavey/load_comm.r")
 
 #### Import Community ####
 ImportCommunity_CH_Lavey <- function(){

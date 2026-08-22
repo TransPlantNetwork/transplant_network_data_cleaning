@@ -2,7 +2,7 @@
 ### NO_NORWAY  ###
 ##################
 
-source("R/ImportData/community_NO_Norway/loadCover.r")
+source("R/functions/ImportData/community_NO_Norway/loadCover.r")
 
 #### Import Community ####
 ImportCommunity_NO_Norway <- function(con){
@@ -129,7 +129,7 @@ ImportClean_NO_Norway <- function(g){
   metaCommunity_NO_Norway_raw = get(load(file = file_in("data/NO_Norway/metaCommunity_NO_Norway.Rdata")))
   
   #make database connection
-  con <- src_sqlite(path = file_in("data/NO_Norway/seedclim.sqlite"), create = FALSE)
+  con <- DBI::dbConnect(RSQLite::SQLite(), file_in("data/NO_Norway/seedclim.sqlite"))
   community_NO_Norway_raw = ImportCommunity_NO_Norway(con)
   taxa_NO_Norway = ImportTaxa_NO_Norway(con)
   trait_NO_Norway_raw = read_csv(file = file_in("data/NO_Norway/traitdata_NO.csv"))

@@ -2,7 +2,7 @@
 ### US_Colorado  ###
 ####################
 
-source("R/ImportData/community_US_Colorado/load_us_col.r")
+source("R/functions/ImportData/community_US_Colorado/load_us_col.r")
 
 #### Import Community ####
 ImportCommunity_US_Colorado <- function(){

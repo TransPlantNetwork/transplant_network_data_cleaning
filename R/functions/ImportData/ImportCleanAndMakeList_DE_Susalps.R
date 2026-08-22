@@ -2,7 +2,7 @@
 ### DE_SUSALPS  ###
 ####################
 
-source("R/ImportData/community_DE_Susalps/loadcomm_SA.r")
+source("R/functions/ImportData/community_DE_Susalps/loadcomm_SA.r")
 
 #### Import Community ####
 ImportCommunity_DE_Susalps <- function(){
