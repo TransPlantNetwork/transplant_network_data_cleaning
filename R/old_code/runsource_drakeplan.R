@@ -1,4 +1,4 @@
-#### Run drake plan for Transplant project: TRAITS ####
+#### Run drake plan for Transplant project ####
 ## C. Chisholm, chelsea.chisholm@usys.ethz.ch
 
 # Load libraries
@@ -11,17 +11,18 @@ library("e1071")
 library("DBI")
 library("RSQLite")
 library("visNetwork")
-library("TR8")
 
 # Source drakeplan
-r_make(source = "./R/WrangleTaxaTraits/trait_drakeplan.R") #NOT WORKING, SITETRAITS IS FAILING FOR SOME REASON
+r_make(source = "./R/old_code/TransPlant_DrakePlan.R")
 
 # Load data 
 # site data available as CO_Site (Country_Site, ex. CH_Lavey is Switzerland, Lavey)
-loadd(alltraits)
+# target dat is combined plant community abundance data for all sites (you can also write loadd(dat) to get just this target)
+loadd()
 
 # Check all is good
 drake_failed()
 
 # View dependency graph
-r_vis_drake_graph(source = "trait_drakeplan.R", targets_only = TRUE)
+r_vis_drake_graph(source = "./R/old_code/TransPlant_DrakePlan.R", targets_only = TRUE)
+

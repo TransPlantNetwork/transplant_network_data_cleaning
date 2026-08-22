@@ -38,7 +38,7 @@ load_SE_Abisko_sptable <- function() {
 
 ## Norway
 # source code needs to be outside of the function to avoid self invalidation? 
-source("R/ImportData/community_NO_Norway/loadCover.r")
+source("R/functions/ImportData/community_NO_Norway/loadCover.r")
 
 load_Norway_sptable <- function() {
   con <- src_sqlite(path = file_in("data/NO_Norway/seedclim.sqlite"), create = FALSE)

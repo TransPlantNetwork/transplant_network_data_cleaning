@@ -20,7 +20,7 @@ pkgconfig::set_config("drake::strings_in_dots" = "literals")
 pn <- . %>% print(n = Inf)
 
 # source cleaning scripts
-path <- c('./R/ImportData/')    
+path <- c('./R/functions/ImportData/')    
 source_files <- list.files(path, "\\.R$")  
 map(paste0(path, source_files), source)
 
