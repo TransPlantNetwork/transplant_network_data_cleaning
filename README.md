@@ -1,13 +1,52 @@
-# TransPlant Network Project
+# TransPlant Network Data Cleaning
 
-This repository contains code for cleaning and loading data from a distributed network of plant community transplants along elevational gradients. 
+This repository cleans, merges, and validates plant community data from the
+TransPlant Network - a network of elevational gradients across which whole
+plant communities are transplanted to lower elevations to simulate climate
+warming - and writes the result to a single canonical database.
 
-This project has migrated from the old Drake pipeline to `targets` - see "Using targets" below for how to run it now. The old Drake-based workflow (`R/old_code/`) is kept for reference only until the new pipeline covers everything it did; see "Old code" at the bottom of this file.
+- TransPlant Network website: TBA
 
-## Authors
+If you have data from a transplant experiment or additional data from existing sites in the database, you can submit your data here: TBA
 
-* **Chelsea Chisholm** - chelsea.chisholm@gmail.com
-* **Dagmar Egelkraut** - Dagmar.Egelkraut@uib.no
+## Cleaning and checking workflow
+
+Each site's raw data (whatever format it arrives in) goes through the same
+sequence of steps to reach the canonical, validated dataset:
+
+```mermaid
+flowchart TD
+  registry["site registry (config)"] --> importStage["import_raw()"]
+  importStage --> cleanStage["standardize_columns() / derive_treatment() / build_ids() / compute_rel_cover()"]
+  cleanStage --> validateStage["validate_site() - v1 obvious checks"]
+  validateStage --> mergeStage["merge_comm_data()"]
+  mergeStage --> taxonomyStage["taxonomy harmonization via TNRS"]
+  taxonomyStage --> regressionStage["compare against legacy snapshot"]
+  regressionStage --> dbStage["write to canonical SQLite database"]
+  validateStage -->|failures| report["validation report (per site)"]
+```
+
+- **Site registry** (`R/functions/site_registry.R`): one row per site,
+  documenting its raw data format, cover unit, treatment rule, and ID
+  components - the single place that captures what makes a site different,
+  instead of that logic being scattered across per-site scripts.
+- **Import & clean** (`R/functions/pipeline/`): `import_raw()` reads the raw
+  file (excel/csv/sqlite/...), then `standardize_columns()`,
+  `derive_treatment()`, `build_ids()`, and `compute_rel_cover()` turn it into
+  the canonical column set. Sites not yet migrated onto these general
+  functions keep their original, trusted cleaning code instead (see
+  "Adding or updating a site" below).
+- **Validation** (`R/functions/pipeline/validate_site.R`): a small, growable
+  set of schema/value/referential checks (see "Validation, taxonomy,
+  regression and the output database" below).
+- **Merge**: all sites' cleaned community tables are combined into one
+  dataset (`merge_comm_data()`).
+- **Taxonomy**: species names are resolved/harmonized once, after merging.
+- **Regression check**: the merged output is compared against a saved
+  snapshot of the previous (Drake) pipeline's output, so migrating/refactoring
+  sites can't silently lose or change data unnoticed.
+- **Database**: the final, validated, taxonomy-harmonized dataset is written
+  to a single SQLite database.
 
 ## Using targets
 
@@ -29,6 +68,30 @@ targets::tar_validate()    # check the pipeline is structurally valid
 targets::tar_visnetwork()  # dependency graph
 targets::tar_outdated()    # which targets need to run
 targets::tar_load(name)    # load a built target into the session
+```
+
+### Repository layout
+
+```
+transplant_network_data_cleaning/
+├── _targets.R              # pipeline definition (combines all plan files below)
+├── run.R                   # source() this to run the pipeline
+├── R/
+│   ├── site_plan.R         # tar_map() over the site registry
+│   ├── harmonization_plan.R
+│   ├── validation_plan.R
+│   ├── taxonomy_plan.R
+│   ├── regression_plan.R
+│   ├── database_plan.R
+│   ├── functions/          # everything the plans call (pipeline steps, site
+│   │                       # registry, schema helpers, legacy per-site code, ...)
+│   └── old_code/           # previous Drake pipeline, kept for reference only
+├── config/
+│   └── schema.yml          # canonical schema for the common dataset
+├── data/                   # raw + downloaded site data (not tracked in git)
+├── docs/
+│   └── data_dictionary.md  # generated from config/schema.yml
+└── tests/                  # unit tests + regression check against legacy output
 ```
 
 ### R folder layout
@@ -101,3 +164,28 @@ When you add or update packages:
 
 Do not commit `renv/library/` — it is local and ignored by git.
 
+## Questions or problems? Open a GitHub issue
+
+If you have a question, spot a bug, or a site's data isn't being cleaned the
+way you expect, please open an issue rather than emailing/messaging directly -
+that way the answer is visible to everyone else using the pipeline.
+
+1. Go to the "Issues" tab of this repository and click "New issue".
+2. Give it a short, descriptive title (e.g. "CH_Lavey: Rel_Cover doesn't sum to 1 for 2019 plots").
+3. In the description, include:
+   - which site(s) are affected (the `site_id` from `site_registry`, if known)
+   - what you expected vs. what happened (error message, unexpected values, etc.)
+   - how to reproduce it, e.g. `targets::tar_make(cleaned_CH_Lavey)` or `targets::tar_read(validated_CH_Lavey)`
+4. Submit the issue. A maintainer will label and follow up on it.
+
+If you already know the fix, feel free to open a pull request instead (referencing the issue, e.g. "Fixes #12") - see the repo's contributing guidelines for the PR/review process.
+
+
+## Data janitors
+
+* **Billur Bektas** - ETH Zürich
+* **Aud H. Halbritter** - University of Bergen
+
+Previous data janitors:
+* Chelsea Chisholm (...)
+* Dagmar Egelkraut (UiB)
