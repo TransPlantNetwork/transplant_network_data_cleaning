@@ -14,9 +14,16 @@ tar_option_set(
     "e1071",
     "DBI",
     "RSQLite",
+    "dbplyr",
     "visNetwork",
-    "dataDownloader"
-  )
+    "dataDownloader",
+    "yaml",
+    "rlang"
+  ),
+  # Each site is cleaned independently (see site_plan.R); one site's raw
+  # data being missing/malformed shouldn't block cleaning every other site,
+  # so let per-site targets fail without aborting the whole tar_make() run.
+  error = "continue"
   # format = "qs", # Optionally set the default storage format. qs is fast.
   #
   # Pipelines that take a long time to run may benefit from
@@ -51,14 +58,46 @@ tar_option_set(
   # Set other options as needed.
 )
 
-# Run the R scripts in the R/ folder with your custom functions:
-tar_source()
-# tar_source("other_functions.R") # Source other scripts as needed.
+# A few legacy per-site loaders (CN_Heibei, NO_Norway, US_Arizona, CN_Gongga)
+# still call file_in(), a Drake-only helper that just marked a path as a
+# dependency for change-detection. targets doesn't have (or need) an
+# equivalent for these already-imported legacy scripts, so provide a
+# no-op pass-through instead of rewriting each loader.
+file_in <- function(x) x
 
-#Combine target plans
-# here we add all the plans that we want and split them into logical cleaning steps
+# Run the R scripts needed by the pipeline. We source explicit paths rather
+# than all of R/ recursively, because R/old_code/ (the old Drake plan, plus
+# manual QA plots, climate raster processing, and old taxize-based taxonomy
+# code) depends on packages (turfmapper, raster/sf, taxize, drake) that are
+# not part of this pipeline's dependencies and are not needed to run it.
+tar_source(c(
+  "R/functions",
+  "R/site_plan.R",
+  "R/download_plan.R", "R/harmonization_plan.R", "R/validation_plan.R",
+  "R/taxonomy_plan.R", "R/regression_plan.R", "R/database_plan.R"
+))
+
+# Build the per-site tar_map() plan now that all functions/data (site_registry,
+# clean_site(), validate_site(), legacy recipes, ...) are guaranteed sourced.
+site_plan <- build_site_plan()
+
+# Combine target plans.
+# Each stage is its own file/plan, kept in pipeline order:
+#   download_plan       - fetch raw data from OSF (R/download_plan.R)
+#   site_plan           - per-site import/clean/validate, one branch per site (R/site_plan.R)
+#   harmonization_plan  - merge all sites' cleaned community data (R/harmonization_plan.R)
+#   validation_plan     - combined validation summary/report (R/validation_plan.R)
+#   taxonomy_plan       - TNRS-based taxonomic name resolution (R/taxonomy_plan.R)
+#   regression_plan     - compare against legacy pipeline snapshot (R/regression_plan.R)
+#   database_plan       - write the canonical output database (R/database_plan.R)
 combined_plan <- c(
   download_plan,
+  site_plan,
   harmonization_plan,
-  validation_plan
+  validation_plan,
+  taxonomy_plan,
+  regression_plan,
+  database_plan
 )
+
+combined_plan
