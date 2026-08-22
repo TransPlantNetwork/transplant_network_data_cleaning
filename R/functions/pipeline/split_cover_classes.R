@@ -16,9 +16,13 @@ add_other_category <- function(dat, site_cfg) {
   dat <- dat[!is.na(dat$Cover), ]
   if (!add_other) return(dat)
 
-  id_cols <- setdiff(names(dat), c("SpeciesName", "Cover"))
+  # Group by UniqueID only (one "Other" row per plot x year), not by every
+  # remaining column: some sites carry per-row columns (e.g. CN_Gongga's raw
+  # `species` code and `flag`) that differ per species and would otherwise
+  # split each plot into one singleton group per row, producing one spurious
+  # "Other" row per species instead of one per plot.
   other <- dat %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(id_cols))) %>%
+    dplyr::group_by(UniqueID) %>%
     dplyr::summarise(SpeciesName = "Other", Cover = pmax(100 - sum(Cover), 0), .groups = "drop")
   dplyr::bind_rows(dat, other)
 }
