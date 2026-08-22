@@ -12,7 +12,7 @@ validate_site <- function(cleaned, site_cfg) {
   checks <- list(
     check_required_columns(cleaned$community, schema, "community", site_id),
     check_required_columns(cleaned$meta, schema, "meta", site_id),
-    check_rel_cover_sums(cleaned$community, site_id),
+    check_rel_cover_sums(cleaned$community, cleaned$cover, site_id),
     check_treatment_values(cleaned$community, schema, site_id),
     check_no_negative_cover(cleaned$community, site_id),
     check_unique_ids(cleaned$community, site_id),
@@ -40,16 +40,29 @@ check_required_columns <- function(df, schema, table, site_id) {
 
 # --- Value checks --------------------------------------------------------
 
-check_rel_cover_sums <- function(comm, site_id) {
+check_rel_cover_sums <- function(comm, cover, site_id) {
   if (is.null(comm[["Rel_Cover"]]) || is.null(comm[["UniqueID"]])) {
     return(.result(site_id, "rel_cover_sums", "skip", "Rel_Cover or UniqueID missing"))
   }
-  sums <- comm %>%
+  # comm$Rel_Cover only covers vascular species: it should sum to ~1 together
+  # with cover$Rel_OtherCover (non-vascular cover classes, e.g. bare ground,
+  # litter, and any synthesized "Other"), not on its own - see
+  # R/functions/pipeline/compute_rel_cover.R for why Rel_Cover is computed on
+  # the full row set before comm/cover are split apart.
+  comm_sums <- comm %>%
     dplyr::group_by(UniqueID) %>%
     dplyr::summarise(total = sum(Rel_Cover, na.rm = TRUE), .groups = "drop")
-  bad <- sums[abs(sums$total - 1) > 0.05, ]
+  if (!is.null(cover) && nrow(cover) > 0 && !is.null(cover[["Rel_OtherCover"]])) {
+    cover_sums <- cover %>%
+      dplyr::group_by(UniqueID) %>%
+      dplyr::summarise(other = sum(Rel_OtherCover, na.rm = TRUE), .groups = "drop")
+    comm_sums <- comm_sums %>%
+      dplyr::left_join(cover_sums, by = "UniqueID") %>%
+      dplyr::mutate(other = tidyr::replace_na(other, 0), total = total + other)
+  }
+  bad <- comm_sums[abs(comm_sums$total - 1) > 0.05, ]
   if (nrow(bad) == 0) {
-    .result(site_id, "rel_cover_sums", "pass", "Rel_Cover sums to ~1 for all plots x years")
+    .result(site_id, "rel_cover_sums", "pass", "Rel_Cover (+ Rel_OtherCover) sums to ~1 for all plots x years")
   } else {
     .result(site_id, "rel_cover_sums", "fail", paste(nrow(bad), "plot x year combinations do not sum to ~1"))
   }
