@@ -1,0 +1,141 @@
+# Canonical schema for the TransPlant Network common dataset.
+#
+# This file is the single source of truth for what a "clean" site dataset
+# must look like. It drives two things:
+#   1. R/functions/pipeline/validate_site.R - schema/value checks are generated from this file
+#   2. R/functions/schema.R::generate_data_dictionary() - renders docs/data_dictionary.md
+#
+# Sections:
+#   community: one row per species x plot x year (vascular species only)
+#   cover:     one row per non-vascular cover class x plot x year (Bare ground, Moss, Litter, ...)
+#   meta:      one row per destination site (destSiteID)
+
+community:
+  Year:
+    type: integer
+    description: Calendar year of the observation
+    required: true
+  originSiteID:
+    type: character
+    description: Identifier of the site the turf/plot originated from
+    required: true
+  originBlockID:
+    type: character
+    description: Block identifier at the origin site (NA if not recorded)
+    required: false
+  destSiteID:
+    type: character
+    description: Identifier of the destination (transplant) site
+    required: true
+  destBlockID:
+    type: character
+    description: Block identifier at the destination site (NA if not recorded)
+    required: false
+  destPlotID:
+    type: character
+    description: Unique plot/turf identifier at the destination site
+    required: true
+  Treatment:
+    type: character
+    description: Experimental treatment applied to the plot
+    allowed_values: [LocalControl, Warm, Cold, Control, NettedControl]
+    required: true
+  UniqueID:
+    type: character
+    description: Unique identifier for a plot x year combination; must be unique within a site
+    required: true
+  SpeciesName:
+    type: character
+    description: Vascular plant species name (pre taxonomy harmonization)
+    required: true
+  Cover:
+    type: numeric
+    description: Percent cover (most sites) or biomass in grams (biomass-based sites, e.g. DE_Susalps)
+    unit: "percent or g"
+    min: 0
+    required: true
+  Total_Cover:
+    type: numeric
+    description: Sum of Cover across all species in the same plot x year
+    min: 0
+    required: false
+  Rel_Cover:
+    type: numeric
+    description: Cover divided by Total_Cover; expected to be between 0 and 1
+    min: 0
+    max: 1
+    required: true
+
+cover:
+  UniqueID:
+    type: character
+    description: Matches community$UniqueID
+    required: true
+  CoverClass:
+    type: character
+    description: Non-vascular cover category (e.g. Bare ground, Moss, Litter, Rock, Lichen)
+    required: true
+  OtherCover:
+    type: numeric
+    description: Cover value for the non-vascular class
+    min: 0
+    required: true
+  Rel_OtherCover:
+    type: numeric
+    description: Relative cover for the non-vascular class
+    min: 0
+    required: false
+
+meta:
+  Gradient:
+    type: character
+    description: Name of the elevational gradient/experiment (usually same as site_id)
+    required: true
+  destSiteID:
+    type: character
+    description: Identifier of the destination site; must match community$destSiteID
+    required: true
+  Longitude:
+    type: numeric
+    description: Decimal degrees longitude of the destination site
+    min: -180
+    max: 180
+    required: true
+  Latitude:
+    type: numeric
+    description: Decimal degrees latitude of the destination site
+    min: -90
+    max: 90
+    required: true
+  Elevation:
+    type: numeric
+    description: Elevation of the destination site in meters above sea level
+    unit: m
+    min: 0
+    required: true
+  YearEstablished:
+    type: integer
+    description: Year the experiment was established at this site
+    required: true
+  YearMin:
+    type: integer
+    description: First year of observations in the cleaned community data
+    required: true
+  YearMax:
+    type: integer
+    description: Last year of observations in the cleaned community data
+    required: true
+  YearRange:
+    type: integer
+    description: YearMax minus YearEstablished
+    required: false
+  PlotSize_m2:
+    type: numeric
+    description: Plot/turf size in square meters
+    unit: m2
+    min: 0
+    required: true
+  Country:
+    type: character
+    description: Country of the destination site
+    required: true
