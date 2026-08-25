@@ -2,8 +2,6 @@
 ### US_Colorado  ###
 ####################
 
-source("R/functions/ImportData/community_US_Colorado/load_us_col.r")
-
 #### Import Community ####
 ImportCommunity_US_Colorado <- function(){
   community_US_Colorado_raw<-read.csv(file = "./data/US_Colorado/US_Colorado_commdata/Final_IntensiveCover_2018-2023_RMBLTransplant.csv")
