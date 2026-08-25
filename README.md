@@ -83,12 +83,14 @@ transplant_network_data_cleaning/
 │   ├── taxonomy_plan.R
 │   ├── regression_plan.R
 │   ├── database_plan.R
+│   ├── release_plan.R
 │   ├── functions/          # everything the plans call (pipeline steps, site
 │   │                       # registry, schema helpers, legacy per-site code, ...)
 │   └── old_code/           # previous Drake pipeline, kept for reference only
 ├── config/
 │   └── schema.yml          # canonical schema for the common dataset
 ├── data/                   # raw + downloaded site data (not tracked in git)
+├── releases/               # dated raw+clean data bundles for Zenodo (not tracked in git)
 ├── docs/
 │   └── data_dictionary.md  # generated from config/schema.yml
 └── tests/                  # unit tests + regression check against legacy output
@@ -98,14 +100,15 @@ transplant_network_data_cleaning/
 
 - `R/*_plan.R` - the `targets` plan files only (`download_plan.R`, `site_plan.R`,
   `harmonization_plan.R`, `validation_plan.R`, `taxonomy_plan.R`, `regression_plan.R`,
-  `database_plan.R`).
+  `database_plan.R`, `release_plan.R`).
 - `R/functions/` - every function the plans call: the general pipeline steps
   (`R/functions/pipeline/`), the site registry (`R/functions/site_registry.R`),
   schema/data-dictionary helpers (`R/functions/schema.R`), merging
   (`R/functions/merge_community.R`), the regression check
   (`R/functions/regression_check.R`), the legacy per-site recipes
-  (`R/functions/sites/legacy_recipes.R`), and the original per-site import/clean
-  scripts they wrap (`R/functions/ImportData/`).
+  (`R/functions/sites/legacy_recipes.R`), the original per-site import/clean
+  scripts they wrap (`R/functions/ImportData/`), and the release bundler
+  (`R/functions/release.R`).
 - `R/old_code/` - the previous Drake-based pipeline (`TransPlant_DrakePlan.R`,
   `runsource_drakeplan.R`, `runsource_traitplan.R`) and folders it depended on
   that the new pipeline doesn't use or need (`CheckData/` manual QA plots,
@@ -147,6 +150,38 @@ that site's targets automatically (`cleaned_<site_id>`, `validated_<site_id>`).
   Drake pipeline's output, once that snapshot has been generated.
 - **Database** (`R/database_plan.R`): writes the final merged, harmonized dataset
   to `data/transplant_network_clean.sqlite`.
+- **Release** (`R/release_plan.R`, `R/functions/release.R`): bundles dated raw +
+  clean data files under `releases/` (not tracked in git) for manual upload to
+  a data repository like Zenodo - see "Releasing a new data version" below.
+
+## Releasing a new data version
+
+Run `targets::tar_make(release_files)` (or just `targets::tar_make()`, since
+`release_files` is the last target) to produce, under `releases/`:
+
+- `transplant_raw_data_<date>.zip` - a zip of the whole `data/` folder, for
+  provenance ("what raw data produced this version?").
+- `transplant_clean_data_<date>.sqlite` - the canonical database
+  (`community` + `meta` tables).
+- `transplant_clean_data_<date>_csv.zip` - the same tables as CSV, for anyone
+  who'd rather not open SQLite.
+- `CHANGELOG_<date>.md` - the pipeline-code commits since the last release
+  (raw data itself isn't git-tracked, so this only covers cleaning-logic
+  changes, not raw data changes).
+
+Raw and clean data are versioned as separate files/dates rather than one
+combined bundle, since they change for different reasons (new raw
+submissions vs. cleaning-code fixes) and downstream users often only want one
+of the two.
+
+Uploading to Zenodo (or wherever) is a manual step for now: just drag the
+files from `releases/` in. After uploading, tag the commit so the *next*
+changelog picks up from here instead of listing everything again:
+
+```sh
+git tag data-release-<date>
+git push origin data-release-<date>
+```
 
 ## Using renv
 

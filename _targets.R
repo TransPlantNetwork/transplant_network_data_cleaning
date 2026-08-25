@@ -74,7 +74,7 @@ tar_source(c(
   "R/functions",
   "R/site_plan.R",
   "R/download_plan.R", "R/harmonization_plan.R", "R/validation_plan.R",
-  "R/taxonomy_plan.R", "R/regression_plan.R", "R/database_plan.R"
+  "R/taxonomy_plan.R", "R/regression_plan.R", "R/database_plan.R", "R/release_plan.R"
 ))
 
 # Build the per-site tar_map() plan now that all functions/data (site_registry,
@@ -90,6 +90,7 @@ site_plan <- build_site_plan()
 #   taxonomy_plan       - TNRS-based taxonomic name resolution (R/taxonomy_plan.R)
 #   regression_plan     - compare against legacy pipeline snapshot (R/regression_plan.R)
 #   database_plan       - write the canonical output database (R/database_plan.R)
+#   release_plan        - bundle dated raw+clean data files for Zenodo (R/release_plan.R)
 combined_plan <- c(
   download_plan,
   site_plan,
@@ -97,7 +98,8 @@ combined_plan <- c(
   validation_plan,
   taxonomy_plan,
   regression_plan,
-  database_plan
+  database_plan,
+  release_plan
 )
 
 combined_plan
