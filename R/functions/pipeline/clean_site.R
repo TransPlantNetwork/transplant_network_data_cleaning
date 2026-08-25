@@ -18,6 +18,7 @@ clean_site <- function(site_cfg) {
   dat <- standardize_columns(raw, site_cfg)
   dat <- derive_treatment(dat, site_cfg)
   dat <- build_ids(dat, site_cfg)
+  dat <- collapse_duplicate_species(dat, site_cfg)
   dat <- add_other_category(dat, site_cfg)
   dat <- compute_rel_cover(dat, site_cfg)
   split <- split_cover_classes(dat, site_cfg)

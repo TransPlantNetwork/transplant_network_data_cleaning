@@ -12,6 +12,12 @@ standardize_columns <- function(raw, site_cfg) {
       tidyr::separate(siteID, c("destSiteID", "originSiteID"), sep = "_"),
     US_Colorado = raw %>%
       dplyr::select(year, turfID, species, percentCover) %>%
+      # 27 rows (all in 2023) have no turfID (or any other plot identifier) in
+      # the raw file at all - a genuine gap in that year's raw data, not
+      # something recoverable from other columns. Drop them rather than let
+      # them silently collapse into one bogus "NA" plot; worth following up
+      # with the data provider about what plot(s) they belong to.
+      dplyr::filter(!is.na(turfID), turfID != "") %>%
       dplyr::rename(SpeciesName = species, Cover = percentCover, Year = year, destPlotID = turfID) %>%
       dplyr::mutate(
         Year = as.numeric(Year),
