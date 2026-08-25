@@ -52,7 +52,7 @@ check_rel_cover_sums <- function(comm, cover, site_id) {
   comm_sums <- comm %>%
     dplyr::group_by(UniqueID) %>%
     dplyr::summarise(total = sum(Rel_Cover, na.rm = TRUE), .groups = "drop")
-  if (!is.null(cover) && nrow(cover) > 0 && !is.null(cover[["Rel_OtherCover"]])) {
+  if (!is.null(cover) && nrow(cover) > 0 && !is.null(cover[["Rel_OtherCover"]]) && !is.null(cover[["UniqueID"]])) {
     cover_sums <- cover %>%
       dplyr::group_by(UniqueID) %>%
       dplyr::summarise(other = sum(Rel_OtherCover, na.rm = TRUE), .groups = "drop")
