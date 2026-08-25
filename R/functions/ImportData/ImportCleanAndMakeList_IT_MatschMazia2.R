@@ -28,8 +28,12 @@ CleanCommunity_IT_MatschMazia2 <- function(community_IT_MatschMazia2_raw){
                                    Elevation == 1950 ~ "High",
                                    Treatment == 'Warm' ~ 'High')) %>% 
     select(Year, destSiteID, originSiteID, UniqueID, Treatment, SpeciesName, Cover, -treat) %>% 
+    # UniqueID used to be reconstructed without Year, so it identified a plot
+    # (not a plot x year) - all years for the same plot collapsed onto one
+    # UniqueID, which silently inflated Rel_Cover sums to ~(number of years)
+    # once summed downstream. Include Year, as every other site does.
     extract(UniqueID, into = c("destPlotID", "year"), "(.*)_([^_]+)$") %>% 
-    mutate(UniqueID = paste(originSiteID, destSiteID, destPlotID, sep='_')) %>%  
+    mutate(UniqueID = paste(Year, originSiteID, destSiteID, destPlotID, sep='_')) %>%  
     select(-year) %>%
     mutate(destPlotID = as.character(destPlotID), destBlockID = if (exists('destBlockID', where = .)) as.character(destBlockID) else NA)
   
