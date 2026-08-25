@@ -37,7 +37,11 @@ CleanCommunity_US_Arizona <- function(community_US_Arizona_raw, cover_US_Arizona
     mutate(destBlockID = if (exists('destBlockID', where = .)) as.character(destBlockID) else NA) %>%
     group_by(UniqueID, Year, originSiteID, destSiteID, destPlotID, destBlockID, Treatment) %>%
     mutate(Individuals = ifelse(is.na(Individuals), 0, Individuals)) %>%
-    mutate(Total_Cover = sum(Individuals), Rel_Cover = Individuals / Total_Cover) 
+    # This site records individual counts rather than percent cover; Cover
+    # holds those counts (see site_registry.R note: "Individual counts
+    # converted to relative cover") so Cover/Rel_Cover still exist as the
+    # canonical schema requires, on a counts-based scale for this site.
+    mutate(Cover = Individuals, Total_Cover = sum(Individuals), Rel_Cover = Individuals / Total_Cover) 
   
   # Create comm dataframe
   comm <- dat %>% filter(Rel_Cover > 0)  
@@ -57,7 +61,14 @@ CleanCommunity_US_Arizona <- function(community_US_Arizona_raw, cover_US_Arizona
     select(-plotID) %>% 
     mutate(OtherCover = 100-VascCover) %>%
     gather('CoverClass', 'OtherCover', c(VascCover, OtherCover)) %>% 
-    mutate(Rel_OtherCover=100) #and all this sums to 100 which is perfect
+    # This is an independent % green ground-cover measurement, not part of
+    # the same 0-1 relative-cover budget as comm$Rel_Cover (which is built
+    # from individual counts, not ground cover) - it isn't meaningful to add
+    # the two together. Rel_OtherCover was previously hardcoded to the
+    # literal number 100 (a leftover/bug), which silently broke the
+    # rel_cover_sums check; leave it NA so that check correctly skips this
+    # site's cover table rather than double-counting an unrelated metric.
+    mutate(Rel_OtherCover = NA_real_)
 
   return(list(comm=comm, cover=cover))
 }
