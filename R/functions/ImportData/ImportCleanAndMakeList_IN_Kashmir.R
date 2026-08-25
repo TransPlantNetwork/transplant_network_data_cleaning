@@ -46,8 +46,13 @@ CleanCommunity_IN_Kashmir <- function(community_IN_Kashmir_raw){
     
     comm <- dat2 %>% filter(!SpeciesName %in% c('Other')) %>% 
       filter(Cover > 0) 
+    # Grouped by destPlotID here previously, which - like UniqueID before the
+    # IT_MatschMazia fix - doesn't include Year, so multiple years of the same
+    # plot were silently summed into one "Other" row. Group by UniqueID (which
+    # does include Year, see UniqueID <- paste(destPlotID, Year) above) so this
+    # table lines up one-to-one with comm's plot x year grouping.
     cover <- dat2 %>% filter(SpeciesName %in% c('Other')) %>% 
-      select(destPlotID, SpeciesName, Cover, Rel_Cover) %>% group_by(destPlotID, SpeciesName) %>% summarize(OtherCover=sum(Cover), Rel_OtherCover=sum(Rel_Cover)) %>%
+      select(UniqueID, SpeciesName, Cover, Rel_Cover) %>% group_by(UniqueID, SpeciesName) %>% summarize(OtherCover=sum(Cover), Rel_OtherCover=sum(Rel_Cover)) %>%
       rename(CoverClass=SpeciesName)
     return(list(comm=comm, cover=cover)) 
     return(dat)
