@@ -92,7 +92,8 @@ transplant_network_data_cleaning/
 ├── data/                   # raw + downloaded site data (not tracked in git)
 ├── releases/               # dated raw+clean data bundles for Zenodo (not tracked in git)
 ├── docs/
-│   └── data_dictionary.md  # generated from config/schema.yml
+│   ├── data_dictionary.md  # generated from config/schema.yml
+│   └── validation_report.md  # per-site validation summary, generated from all_sites_validated
 └── tests/                  # unit tests + regression check against legacy output
 ```
 
@@ -138,7 +139,12 @@ that site's targets automatically (`cleaned_<site_id>`, `validated_<site_id>`).
 
 - **Validation** (`R/functions/pipeline/validate_site.R`, `R/validation_plan.R`): a
   small set of schema/value/referential checks, generated from `config/schema.yml`,
-  run per site and combined into `validation_summary`.
+  run per site and combined into `validation_summary`. A human-readable, per-site
+  (per-gradient) summary - years covered, species/plots/rows, and each check's
+  pass/fail/skip status - is rendered to
+  [`docs/validation_report.md`](docs/validation_report.md) by the `validation_report`
+  target (`R/functions/validation_report.R`); run `targets::tar_make(validation_report)`
+  to regenerate it after re-running the pipeline.
 - **Schema & data dictionary**: `config/schema.yml` is the single source of truth
   for the common dataset's columns; `R/functions/schema.R::generate_data_dictionary()`
   renders it to `docs/data_dictionary.md`.

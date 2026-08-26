@@ -22,5 +22,18 @@ validation_plan <- list(
       }
       all_sites_validated
     }
+  ),
+  # Human-readable, per-site (per-gradient) markdown report - see
+  # R/functions/validation_report.R. Depends on validation_summary (not
+  # all_sites_validated directly) purely for ordering: it's the same data,
+  # but this way the "any checks failed" warning above always surfaces
+  # before/alongside the report in tar_make() output.
+  tar_target(
+    name = validation_report,
+    command = {
+      validation_summary
+      render_validation_report(all_sites_cleaned, all_sites_validated, out_path = "docs/validation_report.md")
+    },
+    format = "file"
   )
 )
