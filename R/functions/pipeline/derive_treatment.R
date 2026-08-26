@@ -7,6 +7,7 @@ derive_treatment <- function(dat, site_cfg) {
     site_pair_recode = derive_treatment_site_pair_recode(dat, site_cfg),
     turfid_substring  = derive_treatment_turfid_substring(dat, site_cfg),
     code_lookup       = derive_treatment_code_lookup(dat, site_cfg),
+    already_derived   = derive_treatment_already_derived(dat, site_cfg),
     stop("derive_treatment(): unknown treatment_rule '", site_cfg$treatment_rule, "'")
   )
 }
@@ -32,5 +33,22 @@ derive_treatment_turfid_substring <- function(dat, site_cfg) {
 derive_treatment_code_lookup <- function(dat, site_cfg) {
   dat$Treatment <- dplyr::recode(dat$treatment_code, !!!site_cfg$pipeline$treatment_map)
   dat$treatment_code <- NULL
+  dat
+}
+
+#' For sites where Treatment depends on more than one raw column at once
+#' (e.g. CH_Calanda2's site x plot-number combination) a single lookup key
+#' isn't a clean fit for the other rules above, so standardize_columns()
+#' derives Treatment (and originSiteID, if needed) directly with a small
+#' site-specific case_when(). This rule is a no-op that just checks the
+#' column actually got set, so a typo in standardize_columns() fails loudly
+#' here instead of silently producing NA Treatments.
+derive_treatment_already_derived <- function(dat, site_cfg) {
+  if (is.null(dat[["Treatment"]])) {
+    stop(
+      "derive_treatment(): treatment_rule 'already_derived' expects standardize_columns() ",
+      "to have already set Treatment for site '", site_cfg$site_id, "'"
+    )
+  }
   dat
 }

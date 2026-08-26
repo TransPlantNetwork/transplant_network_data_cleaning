@@ -42,11 +42,11 @@ site_registry <- tibble::tribble(
   "CH_Lavey",            "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Pilot site 1 of 3 (excel format)",
   "US_Colorado",         "csv",       "percent",   "turfid_substring",   NA_character_,                            list(),          "Pilot site 2 of 3 (csv format)",
   "CN_Gongga",           "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "Pilot site 3 of 3 (sqlite format)",
+  "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x plot-number treatment logic",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
   "CH_Calanda",          "excel",     "percent",   "legacy",             "clean_recipe_CH_Calanda",                list(),          "Bespoke duplicate-species fix; migrate later",
-  "CH_Calanda2",         "csv",       "percent",   "legacy",             "clean_recipe_CH_Calanda2",               list(),          "Plot-number based origin/treatment logic",
   "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
@@ -161,6 +161,30 @@ site_pipeline_config <- list(
     country = "China",
     year_established = 2012,
     plot_size_m2 = 0.0625
+  ),
+  CH_Calanda2 = list(
+    raw_path = "data/CH_Calanda2/CH_Calanda2_commdata/calanda_data_TransPlantNetwork.csv",
+    # Raw file needs a filter (drop focal-individual rows) and a sum-by-group
+    # step before it looks like one-row-per-plot-x-species-x-year; reuse the
+    # existing, already-correct loader rather than reimplementing it as a
+    # raw_format case in import_raw().
+    import_fn = "load_cover_CH_Calanda2",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    # Raw Cover here is summed quadrant area in cm2, not a 0-100 percent
+    # estimate, so - like CH_Lavey - do NOT synthesize a "Other" row (there's
+    # no fixed "100" for it to be a shortfall from); Total_Cover/Rel_Cover are
+    # still computed as fractions of each plot's own cm2 total.
+    add_other = FALSE,
+    non_vascular = c("Moss Group", "Lychen Group", "Mushroom Group", "Cetraria islandica"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Cal", 2000, 9.48939, 46.88778,
+      "Nes", 1400, 9.49013, 46.86923
+    ),
+    gradient = "CH_Calanda2",
+    country = "Switzerland",
+    year_established = 2016,
+    plot_size_m2 = 1
   )
 )
 

@@ -20,7 +20,6 @@
 # set its `recipe_fn` to NA in `site_registry`, and remove the entry below.
 
 clean_recipe_CH_Calanda   <- function() ImportClean_CH_Calanda()
-clean_recipe_CH_Calanda2  <- function() ImportClean_CH_Calanda2()
 clean_recipe_NO_Norway    <- function(g) ImportClean_NO_Norway(g = g)
 clean_recipe_US_Montana   <- function() ImportClean_US_Montana()
 clean_recipe_US_Arizona   <- function() ImportClean_US_Arizona()
