@@ -312,6 +312,42 @@
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
       "Repository": "CRAN"
     },
+    "TNRS": {
+      "Package": "TNRS",
+      "Version": "0.3.7",
+      "Source": "GitHub",
+      "Title": "Taxonomic Name Resolution Service",
+      "Authors@R": "c( person(\"Brian\", \"Maitner\", email = \"bmaitner@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-2118-9880\")), person(\"Brad\", \"Boyle\", email = \"bboyle@email.arizona.edu\", role = c(\"aut\")), person(\"Paul\", \"Efren\", email = \"paulefrens@gmail.com \", role = c(\"ctb\")) )",
+      "Description": "Provides access to the Taxonomic Name Resolution Service <https://github.com/ojalaquellueva/tnrsapi> through R.  The user supplies plant taxonomic names and the package returns resolved taxonomic names along with information on decisions.  Optionally, the package can also be used to parse taxonomic names.",
+      "License": "MIT + file LICENSE",
+      "Encoding": "UTF-8",
+      "LazyData": "true",
+      "Imports": [
+        "jsonlite",
+        "httr"
+      ],
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "testthat",
+        "vcr (>= 0.6.0)",
+        "devtools"
+      ],
+      "VignetteBuilder": "knitr",
+      "RoxygenNote": "7.3.2",
+      "Depends": [
+        "R (>= 3.5.0)"
+      ],
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "RTNRS",
+      "RemoteUsername": "EnquistLab",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "71868332c2697522cfda7ffcf709e0cbd2789ed1",
+      "NeedsCompilation": "no",
+      "Author": "Brian Maitner [aut, cre] (ORCID: <https://orcid.org/0000-0002-2118-9880>), Brad Boyle [aut], Paul Efren [ctb]",
+      "Maintainer": "Brian Maitner <bmaitner@gmail.com>"
+    },
     "askpass": {
       "Package": "askpass",
       "Version": "1.2.1",
