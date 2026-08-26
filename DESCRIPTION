@@ -16,7 +16,8 @@ Imports:
     visNetwork,
     dataDownloader,
     yaml,
-    TNRS
+    TNRS,
+    digest
 Suggests:
     testthat,
     waldo,

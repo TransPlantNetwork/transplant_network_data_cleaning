@@ -7,17 +7,75 @@
 # CSV). File names carry an ISO date so they sort chronologically and it's
 # obvious which is newest; uploading to Zenodo itself is a manual step for
 # now - this just produces the files to drag in.
+#
+# Two things made the first version of this unworkably slow (~9h/run):
+#  1. data/climate/ contains two ~2.8 GB CRU TS netCDF files - a public,
+#     externally-available global climate reanalysis dataset, not
+#     TransPlant-network-specific raw data. They dominated the 7.1 GB
+#     data/ folder and gained nothing from being re-zipped every release
+#     (netCDF is already compressed; max-level zip on it is pure wasted
+#     CPU). They're excluded from the raw bundle by default - anyone who
+#     needs them can get them straight from CRU (https://crudata.uea.ac.uk/).
+#  2. Every call re-zipped everything, even if nothing had changed. Both
+#     the raw and clean bundles are now skipped (reusing the last build)
+#     when a cheap metadata hash (file paths + sizes + mtimes; not file
+#     contents, which would mean reading all of data/ anyway) says nothing
+#     changed - see build_if_unchanged().
 
 create_release <- function(database_file, raw_data_dir = "data", release_dir = "releases",
-                            date = format(Sys.Date(), "%Y-%m-%d")) {
+                            date = format(Sys.Date(), "%Y-%m-%d"),
+                            raw_data_exclude = "climate/.*\\.nc$") {
   if (!dir.exists(release_dir)) dir.create(release_dir, recursive = TRUE)
 
-  raw_zip <- zip_directory(raw_data_dir, file.path(release_dir, paste0("transplant_raw_data_", date, ".zip")))
-  clean_db <- copy_clean_database(database_file, file.path(release_dir, paste0("transplant_clean_data_", date, ".sqlite")))
-  clean_csv_zip <- export_database_csvs(database_file, file.path(release_dir, paste0("transplant_clean_data_", date, "_csv.zip")))
+  raw_zip <- build_if_unchanged(
+    source_dir = raw_data_dir,
+    exclude = raw_data_exclude,
+    cache_file = file.path(release_dir, ".raw_data_release_cache"),
+    build_fn = function() {
+      zip_directory(raw_data_dir, file.path(release_dir, paste0("transplant_raw_data_", date, ".zip")), exclude = raw_data_exclude)
+    }
+  )
+  clean_db <- build_if_unchanged(
+    source_dir = dirname(database_file),
+    include = basename(database_file),
+    cache_file = file.path(release_dir, ".clean_data_release_cache"),
+    build_fn = function() {
+      clean_db <- copy_clean_database(database_file, file.path(release_dir, paste0("transplant_clean_data_", date, ".sqlite")))
+      clean_csv_zip <- export_database_csvs(database_file, file.path(release_dir, paste0("transplant_clean_data_", date, "_csv.zip")))
+      c(clean_db, clean_csv_zip)
+    }
+  )
   changelog <- write_release_changelog(file.path(release_dir, paste0("CHANGELOG_", date, ".md")), date)
 
-  c(raw_zip, clean_db, clean_csv_zip, changelog)
+  c(raw_zip, clean_db, changelog)
+}
+
+#' Skip `build_fn()` and reuse its previous output(s) if nothing under
+#' `source_dir` (optionally filtered to `include`/excluding `exclude`, both
+#' regexes matched against paths relative to `source_dir`) has changed since
+#' the last call - determined from file size + mtime only, not file content,
+#' so this stays cheap even for a multi-GB directory. Falls back to actually
+#' rebuilding whenever the cache is missing, stale, or its recorded output
+#' file(s) have disappeared.
+build_if_unchanged <- function(source_dir, cache_file, build_fn, include = NULL, exclude = NULL) {
+  files <- list.files(source_dir, recursive = TRUE, full.names = FALSE)
+  if (!is.null(include)) files <- files[grepl(include, files)]
+  if (!is.null(exclude)) files <- files[!grepl(exclude, files)]
+  info <- file.info(file.path(source_dir, files))
+  manifest <- paste(files, info$size, info$mtime, sep = "|", collapse = "\n")
+  hash <- digest::digest(manifest, algo = "xxhash64")
+
+  if (file.exists(cache_file)) {
+    cached <- readRDS(cache_file)
+    if (identical(cached$hash, hash) && all(file.exists(cached$outputs))) {
+      message("Skipping rebuild for ", source_dir, " - no changes detected (matches ", cache_file, ")")
+      return(cached$outputs)
+    }
+  }
+
+  outputs <- build_fn()
+  saveRDS(list(hash = hash, outputs = outputs), cache_file)
+  outputs
 }
 
 #' Resolve `path` to an absolute path, creating its parent directory if
@@ -33,14 +91,29 @@ abs_path <- function(path) {
 
 #' Zip up a whole directory, preserving its top-level folder name inside the
 #' archive (e.g. data/US_Colorado/... , not just US_Colorado/...).
-zip_directory <- function(dir, zipfile) {
+#'
+#' `exclude` is a regex matched against paths relative to `dir` (e.g.
+#' "climate/.*\\.nc$"); matching files are left out of the archive - see the
+#' create_release() comment for why the big climate netCDFs are excluded by
+#' default. Uses zip level -1 (fastest) rather than -9 (max compression):
+#' most of what's in data/ is already-compressed (xlsx, sqlite) or not worth
+#' the extra CPU (large csv/txt) - -9 barely shrinks the output but takes
+#' much longer, which is what made this take hours.
+zip_directory <- function(dir, zipfile, exclude = NULL) {
   zipfile <- abs_path(zipfile)
   if (file.exists(zipfile)) file.remove(zipfile)
 
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
   setwd(dirname(normalizePath(dir)))
-  utils::zip(zipfile = zipfile, files = basename(dir), flags = "-r9Xq")
+
+  if (is.null(exclude)) {
+    files <- basename(dir)
+  } else {
+    files <- list.files(basename(dir), recursive = TRUE, full.names = TRUE)
+    files <- files[!grepl(exclude, sub(paste0("^", basename(dir), "/"), "", files))]
+  }
+  utils::zip(zipfile = zipfile, files = files, flags = "-r1Xq")
 
   zipfile
 }

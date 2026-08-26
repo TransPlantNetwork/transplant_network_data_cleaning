@@ -174,6 +174,19 @@ combined bundle, since they change for different reasons (new raw
 submissions vs. cleaning-code fixes) and downstream users often only want one
 of the two.
 
+A few things keep this fast (seconds when nothing changed, under a minute for
+a real rebuild, rather than hours):
+
+- The raw bundle skips `data/climate/*.nc` - two ~2.8 GB public CRU TS
+  climate reanalysis files that aren't TransPlant-specific raw data; anyone
+  who needs them can get them from [CRU](https://crudata.uea.ac.uk/) directly.
+- Both bundles are skipped entirely (reusing the previous build) if nothing
+  under `data/` (or the database file) has changed since the last release,
+  based on a cheap file size/mtime check - not a full content re-hash.
+- Zipping uses fast compression (`-1`) rather than max (`-9`), since most of
+  `data/` is already-compressed formats (xlsx, sqlite) that don't benefit
+  from the extra CPU anyway.
+
 Uploading to Zenodo (or wherever) is a manual step for now: just drag the
 files from `releases/` in. After uploading, tag the commit so the *next*
 changelog picks up from here instead of listing everything again:
