@@ -29,3 +29,6 @@ _targets/
 /figures/
 /archieve_data/
 /releases/
+
+/.quarto/
+**/*.quarto_ipynb
