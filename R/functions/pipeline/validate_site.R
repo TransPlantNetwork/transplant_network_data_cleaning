@@ -49,15 +49,15 @@ check_rel_cover_sums <- function(comm, cover, site_id) {
   # litter, and any synthesized "Other"), not on its own - see
   # R/functions/pipeline/compute_rel_cover.R for why Rel_Cover is computed on
   # the full row set before comm/cover are split apart.
-  comm_sums <- comm %>%
-    dplyr::group_by(UniqueID) %>%
+  comm_sums <- comm |>
+    dplyr::group_by(UniqueID) |>
     dplyr::summarise(total = sum(Rel_Cover, na.rm = TRUE), .groups = "drop")
   if (!is.null(cover) && nrow(cover) > 0 && !is.null(cover[["Rel_OtherCover"]]) && !is.null(cover[["UniqueID"]])) {
-    cover_sums <- cover %>%
-      dplyr::group_by(UniqueID) %>%
+    cover_sums <- cover |>
+      dplyr::group_by(UniqueID) |>
       dplyr::summarise(other = sum(Rel_OtherCover, na.rm = TRUE), .groups = "drop")
-    comm_sums <- comm_sums %>%
-      dplyr::left_join(cover_sums, by = "UniqueID") %>%
+    comm_sums <- comm_sums |>
+      dplyr::left_join(cover_sums, by = "UniqueID") |>
       dplyr::mutate(other = tidyr::replace_na(other, 0), total = total + other)
   }
   bad <- comm_sums[abs(comm_sums$total - 1) > 0.05, ]
@@ -99,9 +99,9 @@ check_unique_ids <- function(comm, site_id) {
   if (is.null(comm[["UniqueID"]]) || is.null(comm[["SpeciesName"]])) {
     return(.result(site_id, "duplicate_ids", "skip", "UniqueID or SpeciesName missing"))
   }
-  n_dupes <- comm %>%
-    dplyr::count(UniqueID, SpeciesName) %>%
-    dplyr::filter(n > 1) %>%
+  n_dupes <- comm |>
+    dplyr::count(UniqueID, SpeciesName) |>
+    dplyr::filter(n > 1) |>
     nrow()
   if (n_dupes == 0) {
     .result(site_id, "duplicate_ids", "pass", "no duplicate UniqueID x SpeciesName rows")

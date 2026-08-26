@@ -8,8 +8,8 @@ compute_rel_cover <- function(dat, site_cfg) {
   # Group by UniqueID only (one plot x year per group) - see add_other_category()
   # in split_cover_classes.R for why grouping by every remaining column is
   # wrong for sites with per-row columns like a raw species code or QA flag.
-  dat %>%
-    dplyr::group_by(UniqueID) %>%
-    dplyr::mutate(Total_Cover = sum(Cover, na.rm = TRUE), Rel_Cover = Cover / Total_Cover) %>%
+  dat |>
+    dplyr::group_by(UniqueID) |>
+    dplyr::mutate(Total_Cover = sum(Cover, na.rm = TRUE), Rel_Cover = Cover / Total_Cover) |>
     dplyr::ungroup()
 }

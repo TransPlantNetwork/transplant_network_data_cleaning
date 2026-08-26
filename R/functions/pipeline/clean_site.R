@@ -35,18 +35,18 @@ clean_site <- function(site_cfg) {
 #' (destSiteID -> Elevation/Longitude/Latitude) plus registry-level constants.
 build_meta <- function(comm, site_cfg) {
   p <- site_cfg$pipeline
-  comm %>%
-    dplyr::select(destSiteID, Year) %>%
-    dplyr::group_by(destSiteID) %>%
-    dplyr::summarise(YearMin = min(Year), YearMax = max(Year), .groups = "drop") %>%
-    dplyr::left_join(p$meta_table, by = "destSiteID") %>%
+  comm |>
+    dplyr::select(destSiteID, Year) |>
+    dplyr::group_by(destSiteID) |>
+    dplyr::summarise(YearMin = min(Year), YearMax = max(Year), .groups = "drop") |>
+    dplyr::left_join(p$meta_table, by = "destSiteID") |>
     dplyr::mutate(
       Gradient = p$gradient,
       Country = p$country,
       YearEstablished = p$year_established,
       PlotSize_m2 = p$plot_size_m2,
       YearRange = YearMax - YearEstablished
-    ) %>%
+    ) |>
     dplyr::select(
       Gradient, destSiteID, Longitude, Latitude, Elevation, YearEstablished,
       YearMin, YearMax, YearRange, PlotSize_m2, Country

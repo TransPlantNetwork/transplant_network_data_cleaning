@@ -25,8 +25,8 @@ build_ids <- function(dat, site_cfg) {
 collapse_duplicate_species <- function(dat, site_cfg) {
   id_cols <- c("UniqueID", "SpeciesName")
   other_cols <- setdiff(names(dat), c(id_cols, "Cover"))
-  dat %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(id_cols))) %>%
+  dat |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(id_cols))) |>
     dplyr::summarise(
       Cover = sum(Cover, na.rm = TRUE),
       dplyr::across(dplyr::all_of(other_cols), dplyr::first),

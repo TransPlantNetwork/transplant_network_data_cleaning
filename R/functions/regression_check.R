@@ -24,8 +24,8 @@ compare_to_legacy <- function(new_merged, legacy_path = "tests/fixtures/legacy_m
   legacy <- readRDS(legacy_path)
 
   summarise_region <- function(dat) {
-    dat %>%
-      dplyr::group_by(Region) %>%
+    dat |>
+      dplyr::group_by(Region) |>
       dplyr::summarise(
         n_rows = dplyr::n(),
         total_cover = sum(Cover, na.rm = TRUE),
@@ -36,9 +36,9 @@ compare_to_legacy <- function(new_merged, legacy_path = "tests/fixtures/legacy_m
       )
   }
 
-  legacy_summary <- summarise_region(legacy) %>% tidyr::pivot_longer(-Region, names_to = "metric", values_to = "legacy")
-  new_summary <- summarise_region(new_merged) %>% tidyr::pivot_longer(-Region, names_to = "metric", values_to = "new")
+  legacy_summary <- summarise_region(legacy) |> tidyr::pivot_longer(-Region, names_to = "metric", values_to = "legacy")
+  new_summary <- summarise_region(new_merged) |> tidyr::pivot_longer(-Region, names_to = "metric", values_to = "new")
 
-  dplyr::full_join(legacy_summary, new_summary, by = c("Region", "metric")) %>%
+  dplyr::full_join(legacy_summary, new_summary, by = c("Region", "metric")) |>
     dplyr::mutate(diff = new - legacy)
 }

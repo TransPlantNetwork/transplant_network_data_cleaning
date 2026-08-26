@@ -12,7 +12,7 @@ taxonomy_plan <- list(
   ),
   tar_target(
     name = merged_community_harmonized,
-    command = merged_community %>%
+    command = merged_community |>
       dplyr::left_join(taxonomy_lookup, by = "SpeciesName")
   )
 )

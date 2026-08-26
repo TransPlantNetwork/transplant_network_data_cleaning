@@ -21,8 +21,8 @@ add_other_category <- function(dat, site_cfg) {
   # `species` code and `flag`) that differ per species and would otherwise
   # split each plot into one singleton group per row, producing one spurious
   # "Other" row per species instead of one per plot.
-  other <- dat %>%
-    dplyr::group_by(UniqueID) %>%
+  other <- dat |>
+    dplyr::group_by(UniqueID) |>
     dplyr::summarise(SpeciesName = "Other", Cover = pmax(100 - sum(Cover), 0), .groups = "drop")
   dplyr::bind_rows(dat, other)
 }
@@ -37,12 +37,12 @@ split_cover_classes <- function(dat, site_cfg) {
   exclude <- c(non_vascular, if (add_other) "Other")
 
   list(
-    comm = dat %>% dplyr::filter(!SpeciesName %in% exclude, Cover > 0),
-    cover = dat %>%
-      dplyr::filter(SpeciesName %in% exclude) %>%
-      dplyr::select(UniqueID, SpeciesName, Cover, Rel_Cover) %>%
-      dplyr::group_by(UniqueID, SpeciesName) %>%
-      dplyr::summarise(OtherCover = sum(Cover), Rel_OtherCover = sum(Rel_Cover), .groups = "drop") %>%
+    comm = dat |> dplyr::filter(!SpeciesName %in% exclude, Cover > 0),
+    cover = dat |>
+      dplyr::filter(SpeciesName %in% exclude) |>
+      dplyr::select(UniqueID, SpeciesName, Cover, Rel_Cover) |>
+      dplyr::group_by(UniqueID, SpeciesName) |>
+      dplyr::summarise(OtherCover = sum(Cover), Rel_OtherCover = sum(Rel_Cover), .groups = "drop") |>
       dplyr::rename(CoverClass = SpeciesName)
   )
 }

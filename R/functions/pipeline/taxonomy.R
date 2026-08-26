@@ -61,9 +61,9 @@ harmonize_taxonomy <- function(merged_community) {
     }
   )
 
-  tibble::tibble(SpeciesName = taxa, submitted_name = submitted_name) %>%
+  tibble::tibble(SpeciesName = taxa, submitted_name = submitted_name) |>
     dplyr::left_join(
-      resolved %>%
+      resolved |>
         dplyr::select(
           submitted_name = Name_submitted,
           Accepted_name = Accepted_name,
