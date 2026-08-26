@@ -59,6 +59,25 @@ standardize_columns <- function(raw, site_cfg) {
       dplyr::rename(destSiteID = site, Cover = cover, Year = year, SpeciesName = species, destPlotID = plot_id, destBlockID = block) %>%
       dplyr::mutate(Cover = as.numeric(Cover), destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)) %>%
       dplyr::filter(!is.na(Cover)),
+    # Treatment/originSiteID are already derived by the bespoke raw loader
+    # (load_cover_US_Montana(), reused here as site_cfg$pipeline$import_fn -
+    # see the site_registry note "Most cleaning happens in the loader
+    # script"); only destPlotID needs assembling here (it's
+    # originSiteID_destSiteID_turfID, not just id_components pasted together
+    # in the usual order - see the id_components comment in site_registry.R).
+    # A few non-vascular cover-class names are inconsistently
+    # cased/spelled in the raw sheet (e.g. "bareground" vs "Bare"); recode
+    # them to one canonical spelling per class up front so the generic
+    # split_cover_classes() ends up with one cover row per class per plot,
+    # not one per raw spelling variant.
+    US_Montana = raw %>%
+      dplyr::mutate(
+        Cover = as.numeric(Cover),
+        SpeciesName = dplyr::recode(SpeciesName, bareground = "Bareground", Bare = "Bareground", litter = "Litter", moss = "Moss", rock = "Rock"),
+        destPlotID = paste(originSiteID, destSiteID, turfID, sep = "_")
+      ) %>%
+      dplyr::filter(!is.na(Cover)) %>%
+      dplyr::select(-turfID, -Region),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

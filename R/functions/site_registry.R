@@ -43,6 +43,7 @@ site_registry <- tibble::tribble(
   "US_Colorado",         "csv",       "percent",   "turfid_substring",   NA_character_,                            list(),          "Pilot site 2 of 3 (csv format)",
   "CN_Gongga",           "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "Pilot site 3 of 3 (sqlite format)",
   "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x plot-number treatment logic",
+  "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: Treatment/originSiteID derived in the raw loader",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -51,7 +52,6 @@ site_registry <- tibble::tribble(
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
-  "US_Montana",          "mixed",     "percent",   "legacy",             "clean_recipe_US_Montana",                list(),          "Most cleaning happens in the loader script",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
   "CN_Damxung",          "excel",     "percent",   "legacy",             "clean_recipe_CN_Damxung",                list(),          "Cover-class midpoint recoding",
   "CN_Heibei",           "excel",     "percent",   "legacy",             "clean_recipe_CN_Heibei",                 list(),          "3-way origin x dest treatment matrix incl. Cold",
@@ -185,6 +185,29 @@ site_pipeline_config <- list(
     country = "Switzerland",
     year_established = 2016,
     plot_size_m2 = 1
+  ),
+  US_Montana = list(
+    raw_path = "data/US_Montana/US_Montana_commdata/MT_transplant_relevee_200421.csv",
+    # The bespoke bit here isn't the file format (plain csv) but the
+    # Treatment/originSiteID derivation (elevation x disturbance-treatment
+    # case_when, dropping a "soil" treatment arm not used by this dataset) -
+    # reuse the existing loader rather than re-deriving that in
+    # standardize_columns()/derive_treatment().
+    import_fn = "load_cover_US_Montana",
+    # destPlotID is set directly in standardize_columns() (it's
+    # originSiteID_destSiteID_turfID, not the usual id_components paste
+    # order); UniqueID is Year + that already-assembled destPlotID.
+    id_components = c("Year", "destPlotID"),
+    non_vascular = c("Other", "Bareground", "Litter", "Moss", "Rock"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Low", 1985, -111.496672, 45.3089900,
+      "High", 2185, -111.49859499, 45.30523699
+    ),
+    gradient = "US_Montana",
+    country = "USA",
+    year_established = 2013,
+    plot_size_m2 = 0.25
   )
 )
 
