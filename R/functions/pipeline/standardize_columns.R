@@ -78,6 +78,29 @@ standardize_columns <- function(raw, site_cfg) {
       ) %>%
       dplyr::filter(!is.na(Cover)) %>%
       dplyr::select(-turfID, -Region),
+    # Raw sheet is wide (one column per species) rather than one row per
+    # observation, so it needs a select() (dropping ID/metadata columns and
+    # the "Bare soil".."Mosses" range - a block of non-vascular columns not
+    # used at this site at all, per the original code's comment about
+    # dropping most moss/lichen data) and a pivot_longer() to long format
+    # before it looks like every other site's raw data. Treatment is dropped
+    # here too; the raw column doesn't distinguish Warm from Cold (both
+    # directions of elevation transplant), so the canonical Treatment is
+    # derived from the origin/destination elevation pair instead
+    # (site_pair_recode rule, treatment_map in site_pipeline_config).
+    SE_Abisko = raw %>%
+      dplyr::select(-c(El, Ori, Yr, `Spot ID`, Tag, `Bare soil`:Mosses, Treatment)) %>%
+      dplyr::rename(originSiteID = `Elevation of origin`, destSiteID = `Transplant elevation`, destBlockID = Block, destPlotID = `Core ID`) %>%
+      # Species columns aren't all the same type (readxl infers some as
+      # logical when a column happens to be all-NA), so cast to character
+      # before pivoting - pivot_longer() errors on mismatched column types
+      # where gather() used to silently coerce.
+      dplyr::mutate(dplyr::across(-c(destSiteID, originSiteID, destPlotID, destBlockID, Year), as.character)) %>%
+      tidyr::pivot_longer(
+        cols = -c(destSiteID, originSiteID, destPlotID, destBlockID, Year),
+        names_to = "SpeciesName", values_to = "Cover"
+      ) %>%
+      dplyr::mutate(Cover = as.numeric(Cover), destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

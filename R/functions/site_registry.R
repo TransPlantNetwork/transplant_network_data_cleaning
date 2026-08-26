@@ -44,6 +44,7 @@ site_registry <- tibble::tribble(
   "CN_Gongga",           "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "Pilot site 3 of 3 (sqlite format)",
   "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x plot-number treatment logic",
   "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: Treatment/originSiteID derived in the raw loader",
+  "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Migrated: wide-format sheet gathered to long in standardize_columns()",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -61,7 +62,6 @@ site_registry <- tibble::tribble(
   "DE_Susalps",          "mixed",     "biomass",   "legacy",             "clean_recipe_DE_Susalps",                list(),          "Biomass, no Other cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together",
-  "SE_Abisko",           "excel",     "percent",   "legacy",             "clean_recipe_SE_Abisko",                 list(),          "Wide-format cover data (species as columns)",
   "IT_MatschMazia1",     "sqlite",    "percent",   "legacy",             "clean_recipe_IT_MatschMazia1",           list(),          "Wide-format cover data (species as columns)",
   "IT_MatschMazia2",     "sqlite",    "percent",   "legacy",             "clean_recipe_IT_MatschMazia2",           list(),          "Wide-format cover data (species as columns)"
 )
@@ -208,6 +208,33 @@ site_pipeline_config <- list(
     country = "USA",
     year_established = 2013,
     plot_size_m2 = 0.25
+  ),
+  SE_Abisko = list(
+    raw_path = "data/SE_Abisko/SE_Abisko_commdata/Vegetation data Abisko transplantation experiment (2012 + 2013 + 2014 + 2015)_for Chelsea.xlsx",
+    # Needs a specific sheet name, not just "the excel file" - reuse the
+    # existing loader rather than adding sheet-name plumbing to import_raw().
+    import_fn = "ImportCommunity_SE_Abisko",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    non_vascular = c("Other", "Sph spe"),
+    # Treatment isn't a simple 2-level control/warm here: transplants can
+    # move either up or down the elevation gradient (3 origins x 3
+    # destinations), so it's keyed by the full destSiteID_originSiteID pair
+    # rather than a single code.
+    treatment_map = c(
+      "High_High" = "LocalControl", "Mid_Mid" = "LocalControl", "Low_Low" = "LocalControl",
+      "Low_High" = "Warm", "Mid_High" = "Warm", "Low_Mid" = "Warm",
+      "Mid_Low" = "Cold", "High_Low" = "Cold", "High_Mid" = "Cold"
+    ),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "High", 1000, 19.0921899, 68.29267099,
+      "Mid", 690, 19.17353299, 68.294066999,
+      "Low", 500, 19.190148, 68.300843
+    ),
+    gradient = "SE_Abisko",
+    country = "Sweden",
+    year_established = 2012,
+    plot_size_m2 = 0.0177
   )
 )
 
