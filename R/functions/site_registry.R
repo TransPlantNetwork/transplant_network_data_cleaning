@@ -55,22 +55,22 @@ site_registry <- tibble::tribble(
   "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: same pattern as MatschMazia1 (1500/1950 m; originControl(s) labels)",
   "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: veg_away/veg_home Treatment + Cetraria islandica cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
+  "FR_Lautaret",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: two raw sources (pinpoints + 2022) bound; Warm/Cold/LocalControl",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
-  # (FR_Lautaret, NO_Norway also have legacy trait-cleaning code not yet wired
-  # into the general pipeline - see
+  # (NO_Norway also has legacy trait-cleaning code not yet wired into the
+  # general pipeline - see
   # https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
-  # migrate their trait_fn alongside their community-data migration.
-  # CH_Calanda / FR_AlpeHuez / IT_MatschMazia1/2 community is migrated; trait_fn
-  # still only in the legacy ImportClean scripts - same silent-drop as
-  # CN_Gongga/US_Colorado.)
+  # migrate trait_fn alongside community-data migration.
+  # FR_Lautaret / FR_AlpeHuez / CH_Calanda / IT_MatschMazia1/2 community is
+  # migrated; trait_fn still only in the legacy ImportClean scripts - same
+  # silent-drop as CN_Gongga/US_Colorado.)
   "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
-  "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
-  "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together"
+  "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover"
 )
 
 # --- Pilot site configuration (used only by sites with recipe_fn == NA) ---
@@ -432,6 +432,22 @@ site_pipeline_config <- list(
     country = "France",
     year_established = 2014,
     plot_size_m2 = 0.25
+  ),
+  FR_Lautaret = list(
+    raw_path = "data/FR_Lautaret/FR_Lautaret_commdata",
+    # Two differently shaped CSVs (pinpoint counts 2017-2021; percent cover
+    # 2022) cleaned separately then bound - see load_cover_FR_Lautaret().
+    import_fn = "load_cover_FR_Lautaret",
+    id_components = c("Year", "destPlotID"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "G", 2450, 6.40048, 45.0543600,
+      "L", 1950, 6.4190699, 45.04006
+    ),
+    gradient = "FR_Lautaret",
+    country = "France",
+    year_established = 2017,
+    plot_size_m2 = 1
   )
 )
 

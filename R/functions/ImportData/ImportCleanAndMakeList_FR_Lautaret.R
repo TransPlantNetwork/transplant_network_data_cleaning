@@ -13,6 +13,16 @@ ImportCommunity_FR_Lautaret2 <- function(){
   return(community_FR_Lautaret_raw2)
 } 
 
+# Combined loader for the general pipeline: returns both raw sources as a
+# named list so standardize_columns() can apply the (different) cleaning
+# logic for each and bind them.
+load_cover_FR_Lautaret <- function() {
+  list(
+    pinpoints = ImportCommunity_FR_Lautaret(),
+    transalp = ImportCommunity_FR_Lautaret2()
+  )
+}
+
 #### Cleaning Code ####
 # Cleaning Lautaret community data
 CleanCommunity_FR_Lautaret <- function(community_FR_Lautaret_raw, community_FR_Lautaret_raw2){

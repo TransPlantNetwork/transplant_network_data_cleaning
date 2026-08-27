@@ -422,6 +422,100 @@ standardize_columns <- function(raw, site_cfg) {
       ) |>
       dplyr::distinct() |>
       dplyr::filter(!is.na(Cover)),
+    # Two raw sources with different schemas, returned as a named list by
+    # load_cover_FR_Lautaret(): (1) pinpoints_cleaned_reduced.csv - pinpoint
+    # counts, Site_Treatment = dest_CP/TP; (2) transalp.csv - 2022 percent
+    # cover with code_plot encoding. Each branch derives origin/Treatment
+    # (LocalControl/Warm/Cold), destPlotID, pads Replicate, and distinct()s
+    # before bind; collapse_duplicate_species() then matches the legacy
+    # group_by/sum. Bare-name species get " sp." appended.
+    FR_Lautaret = {
+      pinpoints <- raw$pinpoints |>
+        dplyr::mutate(
+          Replicate = ifelse(nchar(Replicate) == 1, paste0("0", Replicate), Replicate)
+        ) |>
+        dplyr::filter(Subplot %in% c("0", "B")) |>
+        dplyr::mutate(
+          Cover = number_of_obs,
+          SpeciesName = ifelse(
+            is.na(stringr::word(Species, 2)),
+            paste0(Species, " sp."),
+            Species
+          )
+        ) |>
+        tidyr::separate(Site_Treatment, c("destSiteID", "Treatment"), "_") |>
+        dplyr::mutate(
+          originSiteID = dplyr::case_when(
+            destSiteID == "L" & Treatment == "TP" ~ "G",
+            destSiteID == "L" & Treatment == "CP" ~ "L",
+            destSiteID == "G" & Treatment == "CP" ~ "G",
+            destSiteID == "G" & Treatment == "TP" ~ "L"
+          ),
+          Treatment = dplyr::case_when(
+            destSiteID == "L" & Treatment == "TP" ~ "Warm",
+            destSiteID == "L" & Treatment == "CP" ~ "LocalControl",
+            destSiteID == "G" & Treatment == "CP" ~ "LocalControl",
+            destSiteID == "G" & Treatment == "TP" ~ "Cold"
+          ),
+          destPlotID = paste(originSiteID, destSiteID, Replicate, sep = "_"),
+          destBlockID = NA_character_
+        ) |>
+        dplyr::select(
+          Year, originSiteID, destSiteID, destBlockID, destPlotID,
+          Treatment, SpeciesName, Cover
+        ) |>
+        dplyr::distinct()
+
+      transalp <- raw$transalp |>
+        dplyr::mutate(
+          Year = 2022L,
+          subplot = sub(".*_(.*)$", "\\1", code_plot),
+          destSiteID = sub(".*_(High|Low)_.*", "\\1", code_plot),
+          Replicate = sub(".*_(\\d{2})_.*", "\\1", code_plot)
+        ) |>
+        dplyr::rename(SpeciesName = lb_nom, Cover = prct_recouvrement) |>
+        dplyr::filter(subplot %in% c("CTRL", "B")) |>
+        dplyr::mutate(
+          destSiteID = dplyr::recode(destSiteID, High = "G", Low = "L"),
+          originSiteID = dplyr::case_when(
+            destSiteID == "L" & subplot == "CTRL" ~ "L",
+            destSiteID == "G" & subplot == "CTRL" ~ "G",
+            destSiteID == "L" & subplot == "B" ~ "G",
+            destSiteID == "G" & subplot == "B" ~ "L"
+          ),
+          Treatment = dplyr::case_when(
+            destSiteID == "L" & subplot == "CTRL" ~ "LocalControl",
+            destSiteID == "G" & subplot == "CTRL" ~ "LocalControl",
+            destSiteID == "L" & subplot == "B" ~ "Warm",
+            destSiteID == "G" & subplot == "B" ~ "Cold"
+          ),
+          SpeciesName = dplyr::recode(
+            SpeciesName,
+            "Carex sempervirens subsp. sempervirens" = "Carex sempervirens",
+            "Pilosella officinarum" = "Pilosella",
+            "Patzkea paniculata subsp. paniculata" = "Patzkea paniculata"
+          ),
+          SpeciesName = ifelse(
+            is.na(stringr::word(SpeciesName, 2)),
+            paste0(SpeciesName, " sp."),
+            SpeciesName
+          ),
+          destPlotID = paste(originSiteID, destSiteID, Replicate, sep = "_"),
+          destBlockID = NA_character_
+        ) |>
+        dplyr::filter(!is.na(Treatment)) |>
+        dplyr::select(
+          Year, originSiteID, destSiteID, destBlockID, destPlotID,
+          Treatment, SpeciesName, Cover
+        ) |>
+        dplyr::distinct()
+
+      dplyr::bind_rows(pinpoints, transalp) |>
+        dplyr::mutate(
+          SpeciesName = ifelse(SpeciesName == "Undetermined sp.", "Undetermined", SpeciesName)
+        ) |>
+        dplyr::filter(!is.na(Cover))
+    },
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }
