@@ -348,6 +348,37 @@ standardize_columns <- function(raw, site_cfg) {
           Treatment, SpeciesName, Cover
         )
     },
+    # Treatment depends jointly on raw Treatment (veg_away/veg_home) and Site
+    # (Cal/Nes/Pea), so it is derived here rather than via a treatment_rule.
+    # originSiteID is the raw turf_type column. Drops a bogus plot id
+    # ("CalNA.NA") and exact-duplicate raw rows (same two plots noted in the
+    # legacy script) via distinct() before collapse_duplicate_species().
+    # Cetraria islandica is a real non-vascular row (configured in
+    # non_vascular); synthetic Other is still added (default for percent).
+    # Reuses load_cover_CH_Calanda as import_fn.
+    CH_Calanda = raw |>
+      dplyr::ungroup() |>
+      dplyr::mutate(
+        Treatment = dplyr::case_when(
+          Treatment == "veg_away" & Site %in% c("Cal", "Nes") ~ "Warm",
+          Treatment == "veg_home" & Site %in% c("Nes", "Pea", "Cal") ~ "LocalControl"
+        )
+      ) |>
+      dplyr::rename(
+        destSiteID = Site, originSiteID = turf_type, Year = year,
+        SpeciesName = Species_Name, destPlotID = plot_id, destBlockID = Block
+      ) |>
+      dplyr::filter(Treatment %in% c("LocalControl", "Warm")) |>
+      dplyr::mutate(
+        destPlotID = as.character(destPlotID),
+        destBlockID = as.character(destBlockID)
+      ) |>
+      dplyr::filter(destPlotID != "CalNA.NA") |>
+      dplyr::select(
+        Year, Treatment, originSiteID, destSiteID, destBlockID, destPlotID,
+        SpeciesName, Cover
+      ) |>
+      dplyr::distinct(),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

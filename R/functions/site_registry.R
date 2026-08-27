@@ -53,16 +53,16 @@ site_registry <- tibble::tribble(
   "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
   "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: wide-format species columns + elevation/treat Treatment derivation",
   "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: same pattern as MatschMazia1 (1500/1950 m; originControl(s) labels)",
+  "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: veg_away/veg_home Treatment + Cetraria islandica cover class",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
-  # (CH_Calanda, FR_AlpeHuez, FR_Lautaret, NO_Norway also have legacy
-  # trait-cleaning code not yet wired into the general pipeline - see
+  # (FR_AlpeHuez, FR_Lautaret, NO_Norway also have legacy trait-cleaning code
+  # not yet wired into the general pipeline - see
   # https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
   # migrate their trait_fn alongside their community-data migration.
-  # IT_MatschMazia1/2 community is migrated; trait_fn still only in the
-  # legacy ImportClean scripts - same silent-drop as CN_Gongga/US_Colorado.)
-  "CH_Calanda",          "excel",     "percent",   "legacy",             "clean_recipe_CH_Calanda",                list(),          "Bespoke duplicate-species fix; migrate later",
+  # CH_Calanda / IT_MatschMazia1/2 community is migrated; trait_fn still only
+  # in the legacy ImportClean scripts - same silent-drop as CN_Gongga/US_Colorado.)
   "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
@@ -167,6 +167,26 @@ site_pipeline_config <- list(
     country = "China",
     year_established = 2012,
     plot_size_m2 = 0.0625
+  ),
+  CH_Calanda = list(
+    raw_path = "data/CH_Calanda/CH_Calanda_commdata/relevee_database.csv",
+    # Loader averages Cov_Rel1/Cov_Rel2 per plot x species x year and drops
+    # NA/"NF" cells - reuse rather than reimplementing that in import_raw().
+    import_fn = "load_cover_CH_Calanda",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    # Real lichen row in the raw data (not just synthetic Other); split into
+    # the cover table alongside Other.
+    non_vascular = c("Cetraria islandica"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Pea", 2800, 9.47031, 46.89326,
+      "Cal", 2000, 9.48939, 46.88778,
+      "Nes", 1400, 9.49013, 46.86923
+    ),
+    gradient = "CH_Calanda",
+    country = "Switzerland",
+    year_established = 2012,
+    plot_size_m2 = 0.75
   ),
   CH_Calanda2 = list(
     raw_path = "data/CH_Calanda2/CH_Calanda2_commdata/calanda_data_TransPlantNetwork.csv",
