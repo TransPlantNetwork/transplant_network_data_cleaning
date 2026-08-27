@@ -33,9 +33,8 @@ flowchart TD
 - **Import & clean** (`R/functions/pipeline/`): `import_raw()` reads the raw
   file (excel/csv/sqlite/...), then `standardize_columns()`,
   `derive_treatment()`, `build_ids()`, and `compute_rel_cover()` turn it into
-  the canonical column set. Sites not yet migrated onto these general
-  functions keep their original, trusted cleaning code instead (see
-  "Adding or updating a site" below).
+  the canonical column set. One site (`US_Arizona`) still uses its original
+  cleaning script instead - see "Adding or updating a site" below.
 - **Validation** (`R/functions/pipeline/validate_site.R`): a small, growable
   set of schema/value/referential checks (see "Validation, taxonomy,
   regression and the output database" below).
@@ -43,7 +42,7 @@ flowchart TD
   dataset (`merge_comm_data()`).
 - **Taxonomy**: species names are resolved/harmonized once, after merging.
 - **Regression check**: the merged output is compared against a saved
-  snapshot of the previous (Drake) pipeline's output, so migrating/refactoring
+  snapshot of the previous (Drake) pipeline's output, so refactoring
   sites can't silently lose or change data unnoticed.
 - **Database**: the final, validated, taxonomy-harmonized dataset is written
   to a single SQLite database.
@@ -85,7 +84,7 @@ transplant_network_data_cleaning/
 │   ├── database_plan.R
 │   ├── release_plan.R
 │   ├── functions/          # everything the plans call (pipeline steps, site
-│   │                       # registry, schema helpers, legacy per-site code, ...)
+│   │                       # registry, schema helpers, ImportData for checks, ...)
 │   └── old_code/           # previous Drake pipeline, kept for reference only
 ├── config/
 │   └── schema.yml          # canonical schema for the common dataset
@@ -106,17 +105,16 @@ transplant_network_data_cleaning/
   (`R/functions/pipeline/`), the site registry (`R/functions/site_registry.R`),
   schema/data-dictionary helpers (`R/functions/schema.R`), merging
   (`R/functions/merge_community.R`), the regression check
-  (`R/functions/regression_check.R`), the legacy per-site recipes
+  (`R/functions/regression_check.R`), the `US_Arizona` recipe wrapper
   (`R/functions/sites/legacy_recipes.R`), the original per-site import/clean
-  scripts they wrap (`R/functions/ImportData/`), and the release bundler
-  (`R/functions/release.R`).
+  scripts kept for comparison (`R/functions/ImportData/`), and the release
+  bundler (`R/functions/release.R`).
 - `R/old_code/` - the previous Drake-based pipeline (`TransPlant_DrakePlan.R`,
   `runsource_drakeplan.R`, `runsource_traitplan.R`) and folders it depended on
   that the new pipeline doesn't use or need (`CheckData/` manual QA plots,
   `ClimateData/` climate raster processing, `WrangleTaxaTraits/` old
   taxize-based taxonomy/trait code). Kept for reference only, not sourced by
-  `_targets.R` or the tests, until we're confident the new pipeline covers
-  everything the old one did.
+  `_targets.R` or the tests.
 
 ### Adding or updating a site
 
@@ -125,15 +123,32 @@ the single place that documents a site's raw data format, cover unit, treatment
 rule, and ID components, and it drives `tar_map()` in `R/site_plan.R` to create
 that site's targets automatically (`cleaned_<site_id>`, `validated_<site_id>`).
 
-- Fully generalized sites (currently the 3 pilot sites: `CH_Lavey`, `US_Colorado`,
-  `CN_Gongga`) are cleaned entirely by the shared functions in
-  `R/functions/pipeline/` (`import_raw`, `standardize_columns`, `derive_treatment`,
-  `build_ids`, `split_cover_classes`, `compute_rel_cover`). Adding a new site like
-  this means adding a row to `site_registry` plus an entry in `site_pipeline_config`.
-- The remaining sites keep their original, trusted cleaning code from
-  `R/functions/ImportData/`, wrapped by a thin `clean_recipe_*()` function in
-  `R/functions/sites/legacy_recipes.R` so they plug into the same registry-driven
-  pipeline. These can be migrated onto the general functions later, one at a time.
+Almost every site is cleaned by the shared functions in `R/functions/pipeline/`
+(`import_raw`, `standardize_columns`, `derive_treatment`, `build_ids`,
+`split_cover_classes`, `compute_rel_cover`), configured via
+`site_pipeline_config` in the same registry file. Adding a new site like this
+means adding a registry row plus a `site_pipeline_config` entry (and a
+`standardize_columns()` case when column renaming is site-specific).
+
+**Why `US_Arizona` is not on the general pipeline.** Every other site builds
+`community` and `cover` from the *same* long table: vascular species stay in
+`community`, non-vascular / "Other" rows are split into `cover` after a shared
+`Total_Cover` / `Rel_Cover` computation. Arizona is different: `community`
+comes from individual plant counts (one excel sheet), and `cover` comes from a
+separate "% green ground cover" measurement (another file). Those are two
+independent metrics on different scales - not row subsets of one another - so
+`Rel_OtherCover` is intentionally `NA` and must not be mixed into the
+relative-cover budget. Putting that through `split_cover_classes()` would
+require special-casing almost every shared step. It therefore keeps
+`recipe_fn = clean_recipe_US_Arizona`, which calls
+`ImportClean_US_Arizona()` unchanged.
+
+The original `ImportClean_*` scripts under `R/functions/ImportData/` are kept
+for all sites (not just Arizona) so migrations can still be checked against
+the old cleaning output. They are not what the pipeline runs for sites with
+`recipe_fn = NA`. Trait cleaning for sites that provide traits is tracked
+separately in [issue #8](https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8)
+and is not yet wired into the general pipeline.
 
 ### Validation, taxonomy, regression and the output database
 

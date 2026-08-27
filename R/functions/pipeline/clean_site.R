@@ -1,9 +1,9 @@
 # Orchestrates one site's import + clean chain, dispatching to either:
 #   - the general pipeline functions (import_raw -> standardize_columns ->
 #     derive_treatment -> build_ids -> split_cover_classes -> compute_rel_cover),
-#     for sites fully migrated onto the config-driven pipeline, or
-#   - a legacy recipe function (R/sites/legacy_recipes.R) that reproduces the
-#     site's original, trusted cleaning chain unchanged, for sites not yet migrated.
+#     for sites with recipe_fn = NA in the registry, or
+#   - a legacy recipe function (R/functions/sites/legacy_recipes.R) that runs
+#     the original ImportClean_* script unchanged (currently only US_Arizona).
 #
 # Either path returns the same contract: list(meta=, community=, cover=, taxa=[, trait=])
 

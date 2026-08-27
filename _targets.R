@@ -58,11 +58,11 @@ tar_option_set(
   # Set other options as needed.
 )
 
-# A few legacy per-site loaders (CN_Heibei, NO_Norway, US_Arizona, CN_Gongga)
+# A few ImportData loaders (e.g. US_Arizona, CN_Gongga, NO_Norway meta paths)
 # still call file_in(), a Drake-only helper that just marked a path as a
 # dependency for change-detection. targets doesn't have (or need) an
-# equivalent for these already-imported legacy scripts, so provide a
-# no-op pass-through instead of rewriting each loader.
+# equivalent for these scripts, so provide a no-op pass-through instead of
+# rewriting each loader.
 file_in <- function(x) x
 
 # Run the R scripts needed by the pipeline. We source explicit paths rather

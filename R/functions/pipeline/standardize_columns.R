@@ -1,8 +1,7 @@
 # Rename raw, site-specific column names to the canonical schema names.
-# For pilot sites the small amount of site-specific renaming is done inline
-# here via a `switch`, mirroring the "column_map" idea from the plan: it is
-# explicit, inspectable, and isolated to this one function rather than
-# scattered across a whole cleaning script.
+# Site-specific renaming lives in a `switch` here (the "column_map" idea from
+# the plan): explicit, inspectable, and isolated to this one function rather
+# than scattered across a whole cleaning script.
 
 standardize_columns <- function(raw, site_cfg) {
   switch(site_cfg$site_id,

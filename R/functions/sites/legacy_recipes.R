@@ -1,22 +1,20 @@
-# Legacy recipe wrappers.
+# Recipe wrappers for sites that are not on the general pipeline.
 #
-# Why this file exists: 16 of the 19 sites (plus the 4 NO_Norway gradients)
-# have genuinely bespoke cleaning logic (unique treatment matrices, wide-format
-# sheets, cover-class midpoint tables, multiple raw sources bound together,
-# database joins, etc.) that was already written, reviewed and trusted in
-# R/functions/ImportData/ImportCleanAndMakeList_*.R. Rewriting all of that "generically"
-# without real raw data available to test against would risk silently changing
-# the resulting dataset. Per the plan (Section 2), these sites keep their
-# bespoke code as-is; this file just gives each one a uniform name so the
-# registry-driven pipeline (R/functions/pipeline/clean_site.R, R/site_plan.R) can call
-# them the same way it calls the general pipeline for pilot sites.
+# Almost every site is cleaned by R/functions/pipeline/ (see site_registry.R).
+# US_Arizona is the exception: its `community` table comes from individual
+# counts (one excel sheet), while its `cover` table comes from a separate
+# "% green ground cover" measurement (another file). Those are not two
+# subsets of the same rows (unlike every other site, where cover classes are
+# split out of the same long table by split_cover_classes()). Forcing Arizona
+# into import_raw → standardize → add_other → compute_rel_cover → split would
+# mean special-casing almost every shared step, so it stays on this thin
+# wrapper around ImportClean_US_Arizona() instead.
 #
-# Each function here simply calls the original ImportClean_<site>() function
-# (sourced from R/functions/ImportData/ via tar_source()) and returns its unmodified
-# result: list(meta=, community=, cover=, taxa=[, trait=]).
+# The original ImportClean_* scripts under R/functions/ImportData/ are still
+# kept for *all* sites (including migrated ones) so new pipeline output can
+# be compared against the old cleaning code during review. Only US_Arizona
+# is still *run* via a recipe_fn from the targets pipeline.
 #
-# To migrate one of these sites onto the general pipeline later: add its
-# general-pipeline config to `site_pipeline_config` in R/functions/site_registry.R,
-# set its `recipe_fn` to NA in `site_registry`, and remove the entry below.
+# Returns the same contract as clean_site(): list(meta=, community=, cover=, taxa=).
 
-clean_recipe_US_Arizona   <- function() ImportClean_US_Arizona()
+clean_recipe_US_Arizona <- function() ImportClean_US_Arizona()

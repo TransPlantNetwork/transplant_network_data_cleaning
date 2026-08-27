@@ -1,15 +1,14 @@
 # General-purpose raw data import, dispatching on site_cfg$raw_format.
-# Used by pilot (fully-migrated) sites only; legacy sites keep their own
-# import functions inside R/sites/legacy_recipes.R.
+# Used by general-pipeline sites (recipe_fn = NA). Some of those still point
+# site_cfg$pipeline$import_fn at a bespoke loader when the raw layout is too
+# site-specific for a one-size dispatcher (multi-file years, SeedClim sqlite
+# with stomping corrections, etc.).
 
 import_raw <- function(site_cfg) {
-  # Some "general pipeline" sites still have a genuinely bespoke raw-file
-  # layout (e.g. CH_Lavey: different sheet/column conventions per year,
-  # spread across several files) that isn't worth forcing into a one-size
-  # dispatcher. In that case site_pipeline_config can point at an existing,
-  # already-written import function (site_cfg$pipeline$import_fn) instead -
-  # only the *cleaning* steps need to be general for that site to count as
-  # "on the general pipeline".
+  # Prefer an explicit import_fn when the raw layout is genuinely bespoke
+  # (e.g. CH_Lavey: different sheet/column conventions per year across
+  # several files). Only the *cleaning* steps need to be general for that
+  # site to count as "on the general pipeline".
   if (!is.null(site_cfg$pipeline$import_fn)) {
     return(get(site_cfg$pipeline$import_fn, mode = "function")())
   }

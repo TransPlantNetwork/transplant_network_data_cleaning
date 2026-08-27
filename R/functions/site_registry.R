@@ -1,75 +1,68 @@
 # Site registry: the single source of truth for what differs between sites.
 #
-# Every site in the network is one row in `site_registry`. For most sites
-# (recipe_fn is not NA) the row simply documents metadata about a site whose
-# cleaning logic is still the original, trusted per-site code from
-# R/ImportData/ImportCleanAndMakeList_*.R, wrapped by a thin "recipe" function
-# in R/sites/legacy_recipes.R - see that file for why.
+# Every site is one row in `site_registry`. Almost all sites have
+# `recipe_fn = NA` and are cleaned by the general pipeline functions in
+# R/functions/pipeline/ (import_raw, standardize_columns, derive_treatment,
+# build_ids, compute_rel_cover, split_cover_classes), configured via
+# `site_pipeline_config` below.
 #
-# For pilot sites (recipe_fn is NA), the row is the FULL configuration used
-# by the general pipeline functions in R/pipeline/ (import_raw, standardize_columns,
-# derive_treatment, build_ids, compute_rel_cover, split_cover_classes) - no
-# per-site function is needed at all. CH_Lavey, US_Colorado and CN_Gongga are
-# migrated this way as a proof of the general pattern (see the "pilot_migration"
-# plan item). Additional sites can be migrated the same way over time by
-# filling in their general-pipeline columns and removing their recipe_fn.
+# The one exception is US_Arizona (`recipe_fn = clean_recipe_US_Arizona`): its
+# community and cover tables come from two independent raw measurements
+# (individual counts vs. % green ground cover) that are not subsets of the
+# same row set, so they cannot use the shared split_cover_classes() path -
+# see R/functions/sites/legacy_recipes.R and the README.
+#
+# The original ImportClean_* scripts in R/functions/ImportData/ are kept so
+# migrations can still be checked against the old cleaning output; they are
+# not what the pipeline runs for migrated sites.
 #
 # Columns:
 #   site_id        - unique site identifier, matches legacy names (e.g. "CH_Lavey")
 #   raw_format     - one of "excel", "csv", "csv_delim", "sqlite", "rdata", "mixed"
 #   cover_unit     - "percent" (most sites) or "biomass" (no "Other" category added)
 #   treatment_rule - one of "site_pair_recode", "turfid_substring", "code_lookup",
-#                    "origin_dest_matrix", or "legacy" (handled entirely by recipe_fn)
-#   recipe_fn      - name of a wrapper function in R/sites/legacy_recipes.R that
-#                    reproduces the site's full historical cleaning chain, or NA
-#                    if the site is fully migrated onto the general pipeline
-#   recipe_args    - list-column of extra arguments to pass to recipe_fn (e.g. NO_Norway's `g`)
-#   raw_path       - path(s) to the raw data file(s), relative to the project root
-#   column_map     - list-column: named character vector mapping raw column name -> canonical name
-#   id_components  - list-column: character vector of columns pasted together to build UniqueID
-#   non_vascular   - list-column: character vector of SpeciesName values treated as cover classes, not community
-#   meta_table     - list-column: tibble with destSiteID, Elevation, Longitude, Latitude for meta building
-#   gradient       - Gradient name used in meta (defaults to site_id)
-#   country        - Country used in meta
-#   year_established - numeric, YearEstablished used in meta
-#   plot_size_m2   - numeric, PlotSize_m2 used in meta
+#                    "origin_dest_matrix", "already_derived", or "legacy"
+#                    (legacy = handled entirely by recipe_fn)
+#   recipe_fn      - name of a wrapper in R/functions/sites/legacy_recipes.R, or NA
+#                    if the site uses the general pipeline
+#   recipe_args    - list-column of extra arguments to pass to recipe_fn (unused
+#                    for current sites; kept for any future recipe_fn that needs args)
 #   notes          - free text
+#
+# Per-site pipeline details (raw_path, id_components, meta_table, ...) live in
+# `site_pipeline_config` below, not as tribble columns.
 
 site_registry <- tibble::tribble(
   ~site_id,              ~raw_format, ~cover_unit, ~treatment_rule,       ~recipe_fn,                              ~recipe_args,        ~notes,
 
-  # --- Pilot sites: fully migrated onto the general pipeline (no recipe_fn) ---
-  "CH_Lavey",            "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Pilot site 1 of 3 (excel format)",
-  "US_Colorado",         "csv",       "percent",   "turfid_substring",   NA_character_,                            list(),          "Pilot site 2 of 3 (csv format)",
-  "CN_Gongga",           "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "Pilot site 3 of 3 (sqlite format)",
-  "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x plot-number treatment logic",
-  "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: Treatment/originSiteID derived in the raw loader",
-  "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Migrated: wide-format sheet gathered to long in standardize_columns()",
-  "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
-  "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
-  "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: 3-way origin x dest treatment matrix incl. Cold",
-  "DE_Susalps",          "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix, no Other class",
-  "DE_TransAlps",        "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix incl. Cold",
-  "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
-  "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: wide-format species columns + elevation/treat Treatment derivation",
-  "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: same pattern as MatschMazia1 (1500/1950 m; originControl(s) labels)",
-  "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: veg_away/veg_home Treatment + Cetraria islandica cover class",
-  "FR_AlpeHuez",         "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
-  "FR_Lautaret",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: two raw sources (pinpoints + 2022) bound; Warm/Cold/LocalControl",
-  "NO_Ulvhaugen",        "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Ulv/Alr/Fau)",
-  "NO_Lavisdalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Lav/Hog/Vik)",
-  "NO_Gudmedalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Gud/Ram/Arh)",
-  "NO_Skjellingahaugen", "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Skj/Ves/Ovs)",
+  # --- General pipeline (recipe_fn = NA; config in site_pipeline_config) ---
+  "CH_Lavey",            "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Excel; Other/Bare ground already in raw data (add_other = FALSE)",
+  "US_Colorado",         "csv",       "percent",   "turfid_substring",   NA_character_,                            list(),          "CSV; treatment from turfID substring",
+  "CN_Gongga",           "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "Sqlite; treatment code lookup",
+  "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Site x plot-number treatment logic",
+  "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Treatment/originSiteID derived in the raw loader",
+  "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Wide-format sheet pivoted to long in standardize_columns()",
+  "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
+  "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
+  "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "3-way origin x dest treatment matrix incl. Cold",
+  "DE_Susalps",          "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Biomass, origin x dest treatment matrix, no Other class",
+  "DE_TransAlps",        "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Biomass, origin x dest treatment matrix incl. Cold",
+  "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
+  "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Wide-format species columns + elevation/treat Treatment",
+  "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Same pattern as MatschMazia1 (1500/1950 m; originControl(s))",
+  "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "veg_away/veg_home Treatment + Cetraria islandica cover class",
+  "FR_AlpeHuez",         "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
+  "FR_Lautaret",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Two raw sources (pinpoints + 2022) bound; Warm/Cold/LocalControl",
+  "NO_Ulvhaugen",        "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Ulv/Alr/Fau)",
+  "NO_Lavisdalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Lav/Hog/Vik)",
+  "NO_Gudmedalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Gud/Ram/Arh)",
+  "NO_Skjellingahaugen", "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Skj/Ves/Ovs)",
 
-  # --- Remaining sites: registered for the unified pipeline/validation/database,
-  #     cleaning logic still delegated to the original, trusted per-site code ---
-  # US_Arizona keeps its recipe_fn (separate community counts vs % green cover
-  # files - not a fit for the shared split_cover_classes path). Trait-bearing
-  # sites above still drop trait output until issue #8 is done.
-  "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover; leave on recipe_fn"
+  # --- Recipe path (not a fit for split_cover_classes; see legacy_recipes.R) ---
+  "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts + separate % green cover file; kept on recipe_fn"
 )
 
-# --- Pilot site configuration (used only by sites with recipe_fn == NA) ---
+# --- Pipeline config for sites with recipe_fn == NA ---
 # Kept as a separate lookup (rather than more tribble columns) because each
 # entry is itself a nested structure (named vectors / tibbles).
 
@@ -518,8 +511,8 @@ get_site_config <- function(site_id, registry = site_registry, pipeline_config =
   row <- registry[registry$site_id == site_id, ]
   if (nrow(row) != 1) stop("site_id '", site_id, "' not found (or duplicated) in site_registry", call. = FALSE)
   cfg <- as.list(row)
-  # recipe_args is a list-column where each row holds an argument list
-  # (e.g. list(g = 1) for NO_Norway) or an empty list (meaning "no extra args").
+  # recipe_args is a list-column where each row holds an argument list for
+  # recipe_fn, or an empty list (no extra args). Currently unused.
   cfg$recipe_args <- row$recipe_args[[1]]
   cfg$pipeline <- pipeline_config[[site_id]]
   cfg
