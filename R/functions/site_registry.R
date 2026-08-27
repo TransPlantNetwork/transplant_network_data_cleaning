@@ -54,21 +54,22 @@ site_registry <- tibble::tribble(
   "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: wide-format species columns + elevation/treat Treatment derivation",
   "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: same pattern as MatschMazia1 (1500/1950 m; originControl(s) labels)",
   "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: veg_away/veg_home Treatment + Cetraria islandica cover class",
+  "FR_AlpeHuez",         "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
-  # (FR_AlpeHuez, FR_Lautaret, NO_Norway also have legacy trait-cleaning code
-  # not yet wired into the general pipeline - see
+  # (FR_Lautaret, NO_Norway also have legacy trait-cleaning code not yet wired
+  # into the general pipeline - see
   # https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
   # migrate their trait_fn alongside their community-data migration.
-  # CH_Calanda / IT_MatschMazia1/2 community is migrated; trait_fn still only
-  # in the legacy ImportClean scripts - same silent-drop as CN_Gongga/US_Colorado.)
+  # CH_Calanda / FR_AlpeHuez / IT_MatschMazia1/2 community is migrated; trait_fn
+  # still only in the legacy ImportClean scripts - same silent-drop as
+  # CN_Gongga/US_Colorado.)
   "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
-  "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together"
 )
 
@@ -413,6 +414,23 @@ site_pipeline_config <- list(
     gradient = "IT_MatschMazia2",
     country = "Italy",
     year_established = 2010,
+    plot_size_m2 = 0.25
+  ),
+  FR_AlpeHuez = list(
+    raw_path = "data/FR_AlpeHuez/FR_AlpeHuez_commdata/2023-07_MIREN Transplant Experiment_datasheet_140405_AlpeHuezFRANCE.xlsx",
+    import_fn = "ImportCommunity_FR_AlpeHuez",
+    # destPlotID = originSiteID_destSiteID_plotID assembled in
+    # standardize_columns(); UniqueID is Year + that destPlotID.
+    id_components = c("Year", "destPlotID"),
+    non_vascular = c("Bare ground"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "HIGH", 2072, 6.0554500, 45.0999830,
+      "LOW", 1481, 6.035933, 45.08820
+    ),
+    gradient = "FR_AlpeHuez",
+    country = "France",
+    year_established = 2014,
     plot_size_m2 = 0.25
   )
 )

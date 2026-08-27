@@ -21,5 +21,4 @@
 
 clean_recipe_NO_Norway    <- function(g) ImportClean_NO_Norway(g = g)
 clean_recipe_US_Arizona   <- function() ImportClean_US_Arizona()
-clean_recipe_FR_AlpeHuez  <- function() ImportClean_FR_AlpeHuez()
 clean_recipe_FR_Lautaret  <- function() ImportClean_FR_Lautaret()

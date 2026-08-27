@@ -379,6 +379,49 @@ standardize_columns <- function(raw, site_cfg) {
         SpeciesName, Cover
       ) |>
       dplyr::distinct(),
+    # Same site x HIGH_TURF/LOW_TURF Treatment pattern as IN_Kashmir/DE_Grainau.
+    # Year is parsed from a messy Date column (Excel serials, m/d/y, ISO).
+    # Cover "+" recoded to 0.5; species names truncated to genus + epithet.
+    # Bare ground is a real non-vascular class; synthetic Other still added.
+    # distinct() then collapse_duplicate_species() match the legacy
+    # distinct + group_by/sum. Reuses ImportCommunity_FR_AlpeHuez as import_fn.
+    FR_AlpeHuez = raw |>
+      dplyr::select(site:cover.class, -plot, -species.name) |>
+      dplyr::rename(
+        SpeciesName = `corrected name`, Cover = cover.class,
+        destSiteID = site, destBlockID = block, plotID = plot.ID,
+        Treatment = treatment, Date = date
+      ) |>
+      dplyr::mutate(
+        SpeciesName = sub("^(\\S*\\s+\\S+).*", "\\1", SpeciesName)
+      ) |>
+      dplyr::filter(Treatment %in% c("HIGH_TURF", "LOW_TURF")) |>
+      dplyr::mutate(
+        Date = dplyr::case_when(
+          stringr::str_detect(Date, "^\\d+$") ~ as.Date(as.numeric(Date), origin = "1899-12-30"),
+          stringr::str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{4}$") ~ lubridate::mdy(Date),
+          stringr::str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{2}$") ~ lubridate::mdy(Date),
+          stringr::str_detect(Date, "^\\d{4}-\\d{2}-\\d{2}$") ~ lubridate::ymd(Date),
+          TRUE ~ as.Date(NA)
+        ),
+        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
+        Treatment = dplyr::case_when(
+          Treatment == "LOW_TURF" & destSiteID == "LOW" ~ "LocalControl",
+          Treatment == "HIGH_TURF" & destSiteID == "LOW" ~ "Warm",
+          Treatment == "HIGH_TURF" & destSiteID == "HIGH" ~ "LocalControl"
+        ),
+        Year = lubridate::year(Date),
+        Cover = dplyr::recode(Cover, `+` = "0.5"),
+        Cover = as.numeric(as.character(Cover)),
+        destPlotID = paste(originSiteID, destSiteID, plotID, sep = "_"),
+        destBlockID = as.character(destBlockID)
+      ) |>
+      dplyr::select(
+        Year, originSiteID, destSiteID, destBlockID, destPlotID,
+        Treatment, SpeciesName, Cover
+      ) |>
+      dplyr::distinct() |>
+      dplyr::filter(!is.na(Cover)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }
