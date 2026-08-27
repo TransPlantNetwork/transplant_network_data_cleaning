@@ -48,6 +48,7 @@ site_registry <- tibble::tribble(
   "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
   "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
   "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: 3-way origin x dest treatment matrix incl. Cold",
+  "DE_Susalps",          "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix, no Other class",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -59,7 +60,6 @@ site_registry <- tibble::tribble(
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
   "IN_Kashmir",          "excel",     "percent",   "legacy",             "clean_recipe_IN_Kashmir",                list(),          "Two raw files bound together; cover-class midpoints",
   "DE_TransAlps",        "mixed",     "biomass",   "legacy",             "clean_recipe_DE_TransAlps",              list(),          "Biomass, no Other cover class",
-  "DE_Susalps",          "mixed",     "biomass",   "legacy",             "clean_recipe_DE_Susalps",                list(),          "Biomass, no Other cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together",
   "IT_MatschMazia1",     "sqlite",    "percent",   "legacy",             "clean_recipe_IT_MatschMazia1",           list(),          "Wide-format cover data (species as columns)",
@@ -290,6 +290,31 @@ site_pipeline_config <- list(
     country = "China",
     year_established = 2007,
     plot_size_m2 = 1
+  ),
+  DE_Susalps = list(
+    raw_path = "data/DE_Susalps/DE_Susalps_commdata/TransPlantNet_DE_SusAlps_2016-2020.csv",
+    # Raw file has multiple harvest dates per year and a "water"/"seed"
+    # treatment arm not used here - reuse the existing loader (which already
+    # filters to "ctrl" and sums biomass per plot x species x year) rather
+    # than adding that filtering/summing to import_raw()/standardize_columns().
+    import_fn = "load_cover_DE_Susalps",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    # cover_unit = "biomass" already defaults add_other to FALSE (no fixed
+    # "100" for biomass grams to be a shortfall from); non_vascular here is
+    # just the two literal cover-class SpeciesName values ("Moss", "Dead
+    # biomass") already present in the raw data.
+    non_vascular = c("Moss", "Dead biomass"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "BT", 350, 11.581944, 49.921111,
+      "FE", 600, 11.066260, 47.829320,
+      "GW", 860, 11.031010, 47.569750,
+      "EB", 1260, 11.157730, 47.516340
+    ),
+    gradient = "DE_Susalps",
+    country = "Germany",
+    year_established = 2016,
+    plot_size_m2 = 0.09
   )
 )
 

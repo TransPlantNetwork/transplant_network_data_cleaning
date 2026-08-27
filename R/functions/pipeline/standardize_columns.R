@@ -183,6 +183,31 @@ standardize_columns <- function(raw, site_cfg) {
       # single duplicated row doesn't get double-counted as if it were two
       # separate observations.
       dplyr::distinct(),
+    # originSiteID/destSiteID already come out of the raw loader
+    # (load_cover_DE_Susalps, reused as site_pipeline_config$import_fn),
+    # which also already sums biomass per plot x species x year (multiple
+    # harvest dates, "ctrl" treatment only) - only Treatment needs deriving
+    # here, from the same kind of origin x destination elevation matrix as
+    # CN_Heibei, but 4 sites and no "Cold" (all transplants go to equal or
+    # higher elevation: BT < FE < GW < EB).
+    DE_Susalps = raw |>
+      dplyr::rename(Cover = biomass, Year = year, destPlotID = turfID) |>
+      dplyr::mutate(
+        Treatment = dplyr::case_when(
+          originSiteID == "BT" & destSiteID == "BT" ~ "LocalControl",
+          originSiteID == "EB" & destSiteID == "BT" ~ "Warm",
+          originSiteID == "EB" & destSiteID == "EB" ~ "LocalControl",
+          originSiteID == "EB" & destSiteID == "FE" ~ "Warm",
+          originSiteID == "EB" & destSiteID == "GW" ~ "Warm",
+          originSiteID == "FE" & destSiteID == "BT" ~ "Warm",
+          originSiteID == "FE" & destSiteID == "FE" ~ "LocalControl",
+          originSiteID == "GW" & destSiteID == "BT" ~ "Warm",
+          originSiteID == "GW" & destSiteID == "FE" ~ "Warm",
+          originSiteID == "GW" & destSiteID == "GW" ~ "LocalControl"
+        ),
+        destPlotID = as.character(destPlotID)
+      ) |>
+      dplyr::filter(!is.na(Cover)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }
