@@ -23,24 +23,30 @@ CleanCommunity_FR_AlpeHuez <- function(community_FR_AlpeHuez_raw){
     rename(SpeciesName = `corrected name` , Cover = `cover.class` , destSiteID = site , destBlockID = block , plotID = plot.ID , Treatment = treatment , Date = date)%>% 
      mutate(SpeciesName = sub("^(\\S*\\s+\\S+).*", "\\1", SpeciesName)) %>%     # This selects only the first two words in SpeciesName.
       filter(Treatment %in% c("HIGH_TURF", "LOW_TURF")) %>% 
-      mutate(Date = case_when(
-        # Numeric dates (Excel serial numbers)
-        str_detect(Date, "^\\d+$") ~ as.Date(as.numeric(Date), origin = "1899-12-30"),
-        
-        # Handling dates with single or double digit months/days using lubridate's flexible parser
-        str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{4}$") ~ mdy(Date),  # Handles mm/dd/yyyy without leading zero
-        str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{2}$") ~ mdy(Date),  # Handles mm/dd/yy for 2-digit years
-        str_detect(Date, "^\\d{4}-\\d{2}-\\d{2}$") ~ ymd(Date),      # ISO date yyyy-mm-dd
-        
-        TRUE ~ NA_Date_))%>%
-      mutate(originSiteID = str_replace(Treatment, '(.*)_.*', "\\1"), 
+      mutate(
+        # Same branch-safe parsing as standardize_columns() FR_AlpeHuez:
+        # avoid case_when evaluating as.numeric() on slash dates.
+        Date = {
+          d <- as.character(Date)
+          out <- rep(as.Date(NA), length(d))
+          serial <- grepl("^[0-9]+$", d)
+          mdy4 <- grepl("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$", d)
+          mdy2 <- grepl("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$", d)
+          iso <- grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", d)
+          out[serial] <- as.Date(as.numeric(d[serial]), origin = "1899-12-30")
+          out[mdy4] <- mdy(d[mdy4])
+          out[mdy2] <- mdy(d[mdy2])
+          out[iso] <- ymd(d[iso])
+          out
+        },
+        originSiteID = str_replace(Treatment, '(.*)_.*', "\\1"), 
              originSiteID = toupper(originSiteID),
              Treatment = case_when(Treatment =="LOW_TURF" & destSiteID == "LOW" ~ "LocalControl" , 
                                  Treatment =="HIGH_TURF" & destSiteID == "LOW" ~ "Warm" , 
                                  Treatment =="HIGH_TURF" & destSiteID == "HIGH" ~ "LocalControl"),
-           Year = year(as.Date(Date, format='%Y-%m-%d')),
-           Cover = recode(Cover, `+` = "0.5"),
-           Cover = as.numeric(as.character(Cover))) %>% 
+           Year = year(Date),
+           Cover = recode_values(as.character(Cover), "+" ~ "0.5", default = as.character(Cover)),
+           Cover = as.numeric(Cover)) %>% 
            select(-Date) %>% 
       mutate(UniqueID = paste(Year, originSiteID, destSiteID, plotID, sep='_')) %>% 
       mutate(destPlotID = paste(originSiteID, destSiteID, plotID, sep='_')) %>% 

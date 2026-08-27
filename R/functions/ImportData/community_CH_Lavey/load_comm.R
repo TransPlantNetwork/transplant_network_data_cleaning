@@ -61,7 +61,16 @@ load_cover_CH_Lavey <- function(){
       map_dfr(~ read_excel(path = y, sheet = .x, col_types = 'text')) %>%
       pivot_longer(cols = 'Vegetation %':'Biscutella laevigata', names_to = 'SpeciesName', values_to = 'cover')
     dat1 <- dat %>%
-      mutate(cover = recode(cover, `+` = 0.5 , `r` = 0.1 , `1` = 3.5 , `2a` = 10 , `2b` = 20 , `3` = 37.5 , `4` = 62.5 , `5` = 87.5)) %>% 
+      mutate(
+        # Unmapped cover codes (empty cells, typos) become NA and are dropped
+        # below - explicit default avoids dplyr's unreplaced-values warning.
+        cover = dplyr::recode_values(
+          cover,
+          "+" ~ 0.5, "r" ~ 0.1, "1" ~ 3.5, "2a" ~ 10, "2b" ~ 20,
+          "3" ~ 37.5, "4" ~ 62.5, "5" ~ 87.5,
+          default = NA_real_
+        )
+      ) %>%
       filter(!is.na(cover)) %>% #remove non essential rows
       filter(!grepl('FOCAL', SpeciesName)) %>% #remove focals from counts %>%
       mutate(...1 = gsub('RIO_' , 'RIO_RIOturf_', ...1)) %>%

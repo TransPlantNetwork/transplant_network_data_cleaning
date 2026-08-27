@@ -396,13 +396,22 @@ standardize_columns <- function(raw, site_cfg) {
       ) |>
       dplyr::filter(Treatment %in% c("HIGH_TURF", "LOW_TURF")) |>
       dplyr::mutate(
-        Date = dplyr::case_when(
-          stringr::str_detect(Date, "^\\d+$") ~ as.Date(as.numeric(Date), origin = "1899-12-30"),
-          stringr::str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{4}$") ~ lubridate::mdy(Date),
-          stringr::str_detect(Date, "^\\d{1,2}/\\d{1,2}/\\d{2}$") ~ lubridate::mdy(Date),
-          stringr::str_detect(Date, "^\\d{4}-\\d{2}-\\d{2}$") ~ lubridate::ymd(Date),
-          TRUE ~ as.Date(NA)
-        ),
+        # Parse dates without case_when(): dplyr evaluates every RHS, so
+        # as.numeric() on slash dates like "6/16/2020" warned with
+        # "NAs introduced by coercion" even when that branch was not used.
+        Date = {
+          d <- as.character(Date)
+          out <- rep(as.Date(NA), length(d))
+          serial <- grepl("^[0-9]+$", d)
+          mdy4 <- grepl("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$", d)
+          mdy2 <- grepl("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}$", d)
+          iso <- grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", d)
+          out[serial] <- as.Date(as.numeric(d[serial]), origin = "1899-12-30")
+          out[mdy4] <- lubridate::mdy(d[mdy4])
+          out[mdy2] <- lubridate::mdy(d[mdy2])
+          out[iso] <- lubridate::ymd(d[iso])
+          out
+        },
         originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
         Treatment = dplyr::case_when(
           Treatment == "LOW_TURF" & destSiteID == "LOW" ~ "LocalControl",
@@ -410,8 +419,8 @@ standardize_columns <- function(raw, site_cfg) {
           Treatment == "HIGH_TURF" & destSiteID == "HIGH" ~ "LocalControl"
         ),
         Year = lubridate::year(Date),
-        Cover = dplyr::recode(Cover, `+` = "0.5"),
-        Cover = as.numeric(as.character(Cover)),
+        Cover = dplyr::recode_values(as.character(Cover), "+" ~ "0.5", default = as.character(Cover)),
+        Cover = as.numeric(Cover),
         destPlotID = paste(originSiteID, destSiteID, plotID, sep = "_"),
         destBlockID = as.character(destBlockID)
       ) |>
