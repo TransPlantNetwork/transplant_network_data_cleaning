@@ -56,21 +56,17 @@ site_registry <- tibble::tribble(
   "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: veg_away/veg_home Treatment + Cetraria islandica cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: two raw sources (pinpoints + 2022) bound; Warm/Cold/LocalControl",
+  "NO_Ulvhaugen",        "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Ulv/Alr/Fau)",
+  "NO_Lavisdalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Lav/Hog/Vik)",
+  "NO_Gudmedalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Gud/Ram/Arh)",
+  "NO_Skjellingahaugen", "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: SeedClim sqlite + destSiteID filter (Skj/Ves/Ovs)",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
-  # (NO_Norway also has legacy trait-cleaning code not yet wired into the
-  # general pipeline - see
-  # https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
-  # migrate trait_fn alongside community-data migration.
-  # FR_Lautaret / FR_AlpeHuez / CH_Calanda / IT_MatschMazia1/2 community is
-  # migrated; trait_fn still only in the legacy ImportClean scripts - same
-  # silent-drop as CN_Gongga/US_Colorado.)
-  "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
-  "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
-  "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
-  "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
-  "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover"
+  # US_Arizona keeps its recipe_fn (separate community counts vs % green cover
+  # files - not a fit for the shared split_cover_classes path). Trait-bearing
+  # sites above still drop trait output until issue #8 is done.
+  "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover; leave on recipe_fn"
 )
 
 # --- Pilot site configuration (used only by sites with recipe_fn == NA) ---
@@ -448,6 +444,72 @@ site_pipeline_config <- list(
     country = "France",
     year_established = 2017,
     plot_size_m2 = 1
+  ),
+  # Shared SeedClim sqlite load for all four NO gradients; each filters to
+  # its three destSiteIDs via pipeline$sites in standardize_columns().
+  NO_Ulvhaugen = list(
+    raw_path = "data/NO_Norway/seedclim.sqlite",
+    import_fn = "load_cover_NO_Norway_pipeline",
+    sites = c("Ulvhaugen", "Alrust", "Fauske"),
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Ulvhaugen", 1208, 8.12343, 61.0243,
+      "Alrust", 815, 8.70466, 60.8203,
+      "Fauske", 589, 9.07876, 61.0355
+    ),
+    gradient = "NO_Ulvhaugen",
+    country = "Norway",
+    year_established = 2009,
+    plot_size_m2 = 0.0625
+  ),
+  NO_Lavisdalen = list(
+    raw_path = "data/NO_Norway/seedclim.sqlite",
+    import_fn = "load_cover_NO_Norway_pipeline",
+    sites = c("Lavisdalen", "Hogsete", "Vikesland"),
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Lavisdalen", 1097, 7.27596, 60.8231,
+      "Hogsete", 700, 7.17666, 60.876,
+      "Vikesland", 474, 7.16982, 60.8803
+    ),
+    gradient = "NO_Lavisdalen",
+    country = "Norway",
+    year_established = 2009,
+    plot_size_m2 = 0.0625
+  ),
+  NO_Gudmedalen = list(
+    raw_path = "data/NO_Norway/seedclim.sqlite",
+    import_fn = "load_cover_NO_Norway_pipeline",
+    sites = c("Gudmedalen", "Rambera", "Arhelleren"),
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Gudmedalen", 1213, 7.17561, 60.8328,
+      "Rambera", 769, 6.63028, 61.0866,
+      "Arhelleren", 431, 6.33738, 60.6652
+    ),
+    gradient = "NO_Gudmedalen",
+    country = "Norway",
+    year_established = 2009,
+    plot_size_m2 = 0.0625
+  ),
+  NO_Skjellingahaugen = list(
+    raw_path = "data/NO_Norway/seedclim.sqlite",
+    import_fn = "load_cover_NO_Norway_pipeline",
+    sites = c("Skjellingahaugen", "Veskre", "Ovstedal"),
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Skjellingahaugen", 1088, 6.41504, 60.9335,
+      "Veskre", 797, 6.51468, 60.5445,
+      "Ovstedal", 346, 5.96487, 60.6901
+    ),
+    gradient = "NO_Skjellingahaugen",
+    country = "Norway",
+    year_established = 2009,
+    plot_size_m2 = 0.0625
   )
 )
 

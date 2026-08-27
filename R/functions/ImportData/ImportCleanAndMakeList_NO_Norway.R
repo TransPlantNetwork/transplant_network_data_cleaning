@@ -15,6 +15,16 @@ ImportCommunity_NO_Norway <- function(con){
   return(cover_thin_NO_Norway)
 }
 
+# Pipeline loader: opens seedclim.sqlite, runs load_cover_NO_Norway()
+# (stomping/botanist corrections included), and disconnects. Used as
+# import_fn for all four NO_* gradients; site filtering happens in
+# standardize_columns() via site_cfg$pipeline$sites.
+load_cover_NO_Norway_pipeline <- function() {
+  con <- DBI::dbConnect(RSQLite::SQLite(), "data/NO_Norway/seedclim.sqlite")
+  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  load_cover_NO_Norway(con = con)
+}
+
 
 #get taxonomy table
 ImportTaxa_NO_Norway <- function(con){
