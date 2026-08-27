@@ -47,6 +47,7 @@ site_registry <- tibble::tribble(
   "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Migrated: wide-format sheet gathered to long in standardize_columns()",
   "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
   "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
+  "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: 3-way origin x dest treatment matrix incl. Cold",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -56,7 +57,6 @@ site_registry <- tibble::tribble(
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
-  "CN_Heibei",           "excel",     "percent",   "legacy",             "clean_recipe_CN_Heibei",                 list(),          "3-way origin x dest treatment matrix incl. Cold",
   "IN_Kashmir",          "excel",     "percent",   "legacy",             "clean_recipe_IN_Kashmir",                list(),          "Two raw files bound together; cover-class midpoints",
   "DE_TransAlps",        "mixed",     "biomass",   "legacy",             "clean_recipe_DE_TransAlps",              list(),          "Biomass, no Other cover class",
   "DE_Susalps",          "mixed",     "biomass",   "legacy",             "clean_recipe_DE_Susalps",                list(),          "Biomass, no Other cover class",
@@ -271,6 +271,25 @@ site_pipeline_config <- list(
     country = "China",
     year_established = 2013,
     plot_size_m2 = 0.25
+  ),
+  CN_Heibei = list(
+    raw_path = "data/CN_Heibei/CN_Heibei_commdata/data to J Ecology.xlsx",
+    # destPlotID is assembled directly in standardize_columns() (it's
+    # originSiteID_destSiteID_replicate, not just id_components pasted
+    # together in the usual order - see the id_components comment in
+    # US_Montana above for the same pattern).
+    id_components = c("Year", "destPlotID"),
+    non_vascular = c("Other"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "3200", 3200, 101.313306, 37.611750,
+      "3400", 3400, 101.331306, 37.665306,
+      "3800", 3800, 101.36922199, 37.704917
+    ),
+    gradient = "CN_Heibei",
+    country = "China",
+    year_established = 2007,
+    plot_size_m2 = 1
   )
 )
 

@@ -149,6 +149,40 @@ standardize_columns <- function(raw, site_cfg) {
         destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
       ) |>
       dplyr::filter(!is.na(Cover)),
+    # Treatment is a 3x3 origin x destination elevation matrix (unlike
+    # CH_Calanda2/DE_Grainau/CN_Damxung's 2-level warm/local-control, this
+    # one includes "Cold" for transplants moved to a lower/warmer site than
+    # their origin) - derived here directly rather than via a treatment_rule.
+    # Raw Coverage(%) is already a percent (no cover-class recoding needed).
+    # destSiteID/originSiteID == 3600 (a site not used in this experiment;
+    # only present as noise in a few rows) are dropped.
+    CN_Heibei = raw |>
+      dplyr::rename(destSiteID = away, originSiteID = home, Year = year, SpeciesName = species, Cover = `Coverage(%)`) |>
+      dplyr::filter(destSiteID != 3600, originSiteID != 3600) |>
+      dplyr::mutate(
+        destSiteID = as.character(destSiteID), originSiteID = as.character(originSiteID),
+        Treatment = dplyr::case_when(
+          destSiteID == "3200" & originSiteID == "3200" ~ "LocalControl",
+          destSiteID == "3400" & originSiteID == "3400" ~ "LocalControl",
+          destSiteID == "3800" & originSiteID == "3800" ~ "LocalControl",
+          destSiteID == "3200" & originSiteID == "3400" ~ "Warm",
+          destSiteID == "3200" & originSiteID == "3800" ~ "Warm",
+          destSiteID == "3400" & originSiteID == "3800" ~ "Warm",
+          destSiteID == "3400" & originSiteID == "3200" ~ "Cold",
+          destSiteID == "3800" & originSiteID == "3200" ~ "Cold",
+          destSiteID == "3800" & originSiteID == "3400" ~ "Cold"
+        ),
+        destPlotID = paste(originSiteID, destSiteID, replicate, sep = "_")
+      ) |>
+      dplyr::select(-replicate) |>
+      dplyr::filter(!is.na(Cover)) |>
+      # Raw data has ~9 fully-duplicated rows (same plot/species/Cover
+      # entered twice) - drop those exact duplicates before
+      # collapse_duplicate_species() sums any *genuine* repeated
+      # observations (e.g. a species re-identified partway through), so a
+      # single duplicated row doesn't get double-counted as if it were two
+      # separate observations.
+      dplyr::distinct(),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }
