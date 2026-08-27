@@ -125,6 +125,30 @@ standardize_columns <- function(raw, site_cfg) {
         destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
       ) |>
       dplyr::filter(!is.na(Cover)),
+    # Same site x code Treatment derivation + cover-class midpoint recoding
+    # pattern as DE_Grainau, just with a different (10-level) cover-class
+    # scale and a multi-file (one xls/xlsx per year) raw layout - reuse the
+    # existing loader (site_pipeline_config$import_fn) rather than adding
+    # multi-file globbing to import_raw().
+    CN_Damxung = raw |>
+      dplyr::rename(
+        destSiteID = SITE, destBlockID = BLOCK, destPlotID = PLOT.ID,
+        Treatment = TREATMENT, Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
+      ) |>
+      dplyr::mutate(
+        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
+        Treatment = dplyr::case_when(
+          Treatment == "low_turf" & destSiteID == "LOW" ~ "LocalControl",
+          Treatment == "high_turf" & destSiteID == "LOW" ~ "Warm",
+          Treatment == "high_turf" & destSiteID == "HIGH" ~ "LocalControl"
+        ),
+        Cover = dplyr::recode(Cover,
+          `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
+          `8` = 45.5, `9` = 55.5, `10` = 80
+        ),
+        destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
+      ) |>
+      dplyr::filter(!is.na(Cover)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

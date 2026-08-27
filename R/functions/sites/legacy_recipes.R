@@ -22,7 +22,6 @@
 clean_recipe_CH_Calanda   <- function() ImportClean_CH_Calanda()
 clean_recipe_NO_Norway    <- function(g) ImportClean_NO_Norway(g = g)
 clean_recipe_US_Arizona   <- function() ImportClean_US_Arizona()
-clean_recipe_CN_Damxung   <- function() ImportClean_CN_Damxung()
 clean_recipe_CN_Heibei    <- function() ImportClean_CN_Heibei()
 clean_recipe_IN_Kashmir   <- function() ImportClean_IN_Kashmir()
 clean_recipe_DE_TransAlps <- function() ImportClean_DE_TransAlps()

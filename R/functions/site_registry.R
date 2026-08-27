@@ -46,6 +46,7 @@ site_registry <- tibble::tribble(
   "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: Treatment/originSiteID derived in the raw loader",
   "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Migrated: wide-format sheet gathered to long in standardize_columns()",
   "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
+  "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -55,7 +56,6 @@ site_registry <- tibble::tribble(
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
-  "CN_Damxung",          "excel",     "percent",   "legacy",             "clean_recipe_CN_Damxung",                list(),          "Cover-class midpoint recoding",
   "CN_Heibei",           "excel",     "percent",   "legacy",             "clean_recipe_CN_Heibei",                 list(),          "3-way origin x dest treatment matrix incl. Cold",
   "IN_Kashmir",          "excel",     "percent",   "legacy",             "clean_recipe_IN_Kashmir",                list(),          "Two raw files bound together; cover-class midpoints",
   "DE_TransAlps",        "mixed",     "biomass",   "legacy",             "clean_recipe_DE_TransAlps",              list(),          "Biomass, no Other cover class",
@@ -247,6 +247,28 @@ site_pipeline_config <- list(
     ),
     gradient = "DE_Grainau",
     country = "Germany",
+    year_established = 2013,
+    plot_size_m2 = 0.25
+  ),
+  CN_Damxung = list(
+    raw_path = "data/CN_Damxung/CN_Damxung_commdata",
+    # One xls/xlsx file per year (2013-2018), with a few extra blank/duplicate
+    # columns that vary by file - reuse the existing loader rather than
+    # adding multi-file globbing to import_raw().
+    import_fn = "ImportCommunity_CN_Damxung",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    # Only "Other" (synthesized below via add_other) is treated as
+    # non-vascular here; the raw data's one non-plant entry ("others",
+    # lowercase) isn't in the legacy filter list either, so - to match the
+    # legacy output exactly - it stays in `community`, not `cover`.
+    non_vascular = c("Other"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "HIGH", 4800, 91.05491, 30.531410,
+      "LOW", 4313, 91.0646299, 30.4971
+    ),
+    gradient = "CN_Damxung",
+    country = "China",
     year_established = 2013,
     plot_size_m2 = 0.25
   )
