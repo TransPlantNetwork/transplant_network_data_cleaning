@@ -50,6 +50,7 @@ site_registry <- tibble::tribble(
   "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: 3-way origin x dest treatment matrix incl. Cold",
   "DE_Susalps",          "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix, no Other class",
   "DE_TransAlps",        "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix incl. Cold",
+  "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -63,7 +64,6 @@ site_registry <- tibble::tribble(
   "NO_Gudmedalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 3),   "SeedClim database + gradient filter g=3",
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
-  "IN_Kashmir",          "excel",     "percent",   "legacy",             "clean_recipe_IN_Kashmir",                list(),          "Two raw files bound together; cover-class midpoints",
   "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together",
   "IT_MatschMazia1",     "sqlite",    "percent",   "legacy",             "clean_recipe_IT_MatschMazia1",           list(),          "Wide-format cover data (species as columns)",
@@ -337,6 +337,28 @@ site_pipeline_config <- list(
     country = "Germany/Switzerland",
     year_established = 2016,
     plot_size_m2 = 0.09
+  ),
+  IN_Kashmir = list(
+    raw_path = "data/IN_Kashmir/IN_Kashmir_commdata",
+    # Two excel files (2014, 2015) with fixed cell ranges (to work around
+    # spreadsheet drag errors in the raw data) bound together - reuse the
+    # existing loader rather than adding multi-file/range support to
+    # import_raw().
+    import_fn = "ImportCommunity_IN_Kashmir",
+    # destPlotID is assembled directly in standardize_columns() as
+    # originSiteID_destSiteID_destBlockID; UniqueID is destPlotID + Year
+    # (note: reverse order from most other sites) to match the legacy
+    # paste(destPlotID, Year) exactly.
+    id_components = c("destPlotID", "Year"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "HIGH", 2684, 74.39961099, 34.050736,
+      "LOW", 1951, 74.832931, 34.13218899
+    ),
+    gradient = "IN_Kashmir",
+    country = "India",
+    year_established = 2013,
+    plot_size_m2 = 0.25
   )
 )
 

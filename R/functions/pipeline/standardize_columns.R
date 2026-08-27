@@ -226,6 +226,40 @@ standardize_columns <- function(raw, site_cfg) {
         destPlotID = as.character(destPlotID)
       ) |>
       dplyr::filter(!is.na(Cover)),
+    # Same site x code Treatment derivation + cover-class midpoint recoding
+    # pattern as DE_Grainau/CN_Damxung, with a couple of extra site-specific
+    # fixes: a handful of misspelled/inconsistent species names, and (like
+    # CN_Heibei) a few exact-duplicate raw rows to distinct() out before
+    # collapse_duplicate_species() sums genuine repeats. Reuses the existing
+    # loader (two excel files, 2014 and 2015, with fixed cell ranges to work
+    # around spreadsheet drag errors in the raw data) as import_fn.
+    IN_Kashmir = raw |>
+      dplyr::rename(
+        destSiteID = SITE, destBlockID = BLOCK, Treatment = TREATMENT,
+        Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
+      ) |>
+      dplyr::mutate(
+        SpeciesName = dplyr::recode(SpeciesName,
+          "Fragaria spp" = "Fragaria sp.", "Ranunculus spp" = "Ranunculus sp.",
+          "Pinus spp" = "Pinus sp.", "CYANODON dACTYLON" = "Cyanodon dactylon",
+          "Hordeum spp" = "Hordeum sp.", "Rubus spp" = "Rubus sp.",
+          "Cyanodondactylon" = "Cyanodon dactylon"
+        ),
+        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
+        Treatment = dplyr::case_when(
+          Treatment == "low_turf" & destSiteID == "LOW" ~ "LocalControl",
+          Treatment == "high_turf" & destSiteID == "LOW" ~ "Warm",
+          Treatment == "high_turf" & destSiteID == "HIGH" ~ "LocalControl"
+        ),
+        Cover = dplyr::recode(Cover,
+          `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
+          `8` = 45.5, `9` = 55.5, `10` = 70, `11` = 90
+        ),
+        destBlockID = as.character(destBlockID),
+        destPlotID = paste(originSiteID, destSiteID, destBlockID, sep = "_")
+      ) |>
+      dplyr::filter(!is.na(Cover)) |>
+      dplyr::distinct(),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }
