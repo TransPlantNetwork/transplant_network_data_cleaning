@@ -101,6 +101,30 @@ standardize_columns <- function(raw, site_cfg) {
         names_to = "SpeciesName", values_to = "Cover"
       ) |>
       dplyr::mutate(Cover = as.numeric(Cover), destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)),
+    # Treatment is a site x code combination (same pattern as CH_Calanda2/
+    # US_Montana), so it - and originSiteID - are derived here directly; see
+    # derive_treatment_already_derived() in derive_treatment.R. Raw Cover is
+    # a 13-level cover class, not a percent, so it's converted to its
+    # class-midpoint percent here (same conversion the legacy code used).
+    DE_Grainau = raw |>
+      dplyr::rename(
+        destSiteID = site, destBlockID = block, destPlotID = plot.ID,
+        Treatment = treatment, Year = year, SpeciesName = species.name, Cover = cover.class
+      ) |>
+      dplyr::mutate(
+        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
+        Treatment = dplyr::case_when(
+          Treatment == "low_turf" & destSiteID == "LOW" ~ "LocalControl",
+          Treatment == "high_turf" & destSiteID == "LOW" ~ "Warm",
+          Treatment == "high_turf" & destSiteID == "HIGH" ~ "LocalControl"
+        ),
+        Cover = dplyr::recode(Cover,
+          `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
+          `8` = 45.5, `9` = 55.5, `10` = 65.5, `11` = 75.5, `12` = 85.5, `13` = 95.5
+        ),
+        destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
+      ) |>
+      dplyr::filter(!is.na(Cover)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

@@ -45,6 +45,7 @@ site_registry <- tibble::tribble(
   "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x plot-number treatment logic",
   "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: Treatment/originSiteID derived in the raw loader",
   "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Migrated: wide-format sheet gathered to long in standardize_columns()",
+  "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
@@ -57,7 +58,6 @@ site_registry <- tibble::tribble(
   "CN_Damxung",          "excel",     "percent",   "legacy",             "clean_recipe_CN_Damxung",                list(),          "Cover-class midpoint recoding",
   "CN_Heibei",           "excel",     "percent",   "legacy",             "clean_recipe_CN_Heibei",                 list(),          "3-way origin x dest treatment matrix incl. Cold",
   "IN_Kashmir",          "excel",     "percent",   "legacy",             "clean_recipe_IN_Kashmir",                list(),          "Two raw files bound together; cover-class midpoints",
-  "DE_Grainau",          "excel",     "percent",   "legacy",             "clean_recipe_DE_Grainau",                list(),          "Cover-class midpoint recoding",
   "DE_TransAlps",        "mixed",     "biomass",   "legacy",             "clean_recipe_DE_TransAlps",              list(),          "Biomass, no Other cover class",
   "DE_Susalps",          "mixed",     "biomass",   "legacy",             "clean_recipe_DE_Susalps",                list(),          "Biomass, no Other cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
@@ -235,6 +235,20 @@ site_pipeline_config <- list(
     country = "Sweden",
     year_established = 2012,
     plot_size_m2 = 0.0177
+  ),
+  DE_Grainau = list(
+    raw_path = "data/DE_Grainau/DE_Grainau_commdata/Vegetation 2014-17.xlsx",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    non_vascular = c("Other"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "HIGH", 1714, 11.0617667, 47.4414333,
+      "LOW", 773, 11.011217, 47.4761499
+    ),
+    gradient = "DE_Grainau",
+    country = "Germany",
+    year_established = 2013,
+    plot_size_m2 = 0.25
   )
 )
 
