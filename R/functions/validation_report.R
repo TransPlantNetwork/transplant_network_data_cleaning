@@ -10,8 +10,14 @@
 #'   list(meta, community, cover, taxa) - the `all_sites_cleaned` target.
 #' @param all_sites_validated Tibble with columns site, check, status,
 #'   message - the `all_sites_validated` target.
+#' @param taxonomy_resolution Tibble with columns site, pct_unresolved_species,
+#'   ... - the `taxonomy_resolution_summary` target (see
+#'   compute_taxonomy_resolution() in R/functions/pipeline/taxonomy.R). Optional
+#'   (NULL shows "NA" for this column) so this function still works without
+#'   running the (network-dependent) taxonomy step.
 #' @param out_path Path to write the markdown report to.
 render_validation_report <- function(all_sites_cleaned, all_sites_validated,
+                                      taxonomy_resolution = NULL,
                                       out_path = "docs/validation_report.md") {
   out_dir <- dirname(out_path)
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
@@ -19,6 +25,7 @@ render_validation_report <- function(all_sites_cleaned, all_sites_validated,
   site_ids <- names(all_sites_cleaned)
   overview <- dplyr::bind_rows(lapply(site_ids, site_overview_row, all_sites_cleaned, all_sites_validated))
   overview <- overview[order(overview$site), ]
+  overview <- add_taxonomy_resolution(overview, taxonomy_resolution)
 
   n_fail_sites <- sum(overview$n_fail > 0)
   lines <- c(
@@ -74,21 +81,37 @@ site_overview_row <- function(site_id, all_sites_cleaned, all_sites_validated) {
   )
 }
 
+#' Left-join the per-site taxonomy resolution metric onto the overview table.
+#' If `taxonomy_resolution` is NULL (taxonomy step not run/available), fills
+#' in NA rather than failing, so the rest of the report still renders.
+add_taxonomy_resolution <- function(overview, taxonomy_resolution) {
+  if (is.null(taxonomy_resolution)) {
+    overview$pct_unresolved_species <- NA_real_
+    return(overview)
+  }
+  overview |>
+    dplyr::left_join(
+      dplyr::select(taxonomy_resolution, site, pct_unresolved_species),
+      by = "site"
+    )
+}
+
 status_emoji <- function(n_fail, n_skip) {
   if (n_fail > 0) "\u274c fail" else if (n_skip > 0) "\u26a0\ufe0f skip" else "\u2705 pass"
 }
 
 render_overview_table <- function(overview) {
   header <- c(
-    "| Site | Gradient | Country | Years | Species | Plots | Rows | Checks (pass/fail/skip) | Status |",
-    "|---|---|---|---|---|---|---|---|---|"
+    "| Site | Gradient | Country | Years | Species | Unresolved taxa % | Plots | Rows | Checks (pass/fail/skip) | Status |",
+    "|---|---|---|---|---|---|---|---|---|---|"
   )
   rows <- vapply(seq_len(nrow(overview)), function(i) {
     r <- overview[i, ]
     years <- if (is.finite(r$year_min) && is.finite(r$year_max)) paste0(r$year_min, "-", r$year_max) else "NA"
+    unresolved <- if (is.na(r$pct_unresolved_species)) "NA" else paste0(r$pct_unresolved_species, "%")
     paste0(
       "| `", r$site, "` | ", r$gradient %||% "", " | ", r$country %||% "", " | ", years, " | ",
-      r$n_species, " | ", r$n_plots, " | ", r$n_rows, " | ",
+      r$n_species, " | ", unresolved, " | ", r$n_plots, " | ", r$n_rows, " | ",
       r$n_pass, "/", r$n_fail, "/", r$n_skip, " | ", status_emoji(r$n_fail, r$n_skip), " |"
     )
   }, character(1))

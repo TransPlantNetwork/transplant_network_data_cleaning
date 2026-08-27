@@ -140,17 +140,23 @@ that site's targets automatically (`cleaned_<site_id>`, `validated_<site_id>`).
 - **Validation** (`R/functions/pipeline/validate_site.R`, `R/validation_plan.R`): a
   small set of schema/value/referential checks, generated from `config/schema.yml`,
   run per site and combined into `validation_summary`. A human-readable, per-site
-  (per-gradient) summary - years covered, species/plots/rows, and each check's
-  pass/fail/skip status - is rendered to
+  (per-gradient) summary - years covered, species/plots/rows, % of species TNRS
+  couldn't resolve, and each check's pass/fail/skip status - is rendered to
   [`docs/validation_report.md`](docs/validation_report.md) by the `validation_report`
   target (`R/functions/validation_report.R`); run `targets::tar_make(validation_report)`
-  to regenerate it after re-running the pipeline.
+  to regenerate it after re-running the pipeline. Because it includes the taxonomy
+  metric, this now requires the (network-dependent) taxonomy step to have
+  succeeded at least once - see Taxonomy below.
 - **Schema & data dictionary**: `config/schema.yml` is the single source of truth
   for the common dataset's columns; `R/functions/schema.R::generate_data_dictionary()`
   renders it to `docs/data_dictionary.md`.
 - **Taxonomy** (`R/taxonomy_plan.R`): resolves species names via the
   [TNRS package](https://github.com/EnquistLab/RTNRS) after merging, separate from
-  per-site cleaning.
+  per-site cleaning. `taxonomy_resolution_summary` (`compute_taxonomy_resolution()`
+  in `R/functions/pipeline/taxonomy.R`) turns that into a per-site % of
+  species/rows TNRS couldn't confidently match - not a pass/fail check (some
+  genuinely unidentifiable field records are expected), just a quick signal for
+  "does this site have an unusual number of unresolved/misspelled names".
 - **Regression safety net** (`R/regression_plan.R`, `data-raw/snapshot_legacy_output.R`):
   compares the new pipeline's merged output against a saved snapshot of the old
   Drake pipeline's output, once that snapshot has been generated.

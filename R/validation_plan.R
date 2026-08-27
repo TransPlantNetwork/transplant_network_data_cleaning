@@ -28,11 +28,22 @@ validation_plan <- list(
   # all_sites_validated directly) purely for ordering: it's the same data,
   # but this way the "any checks failed" warning above always surfaces
   # before/alongside the report in tar_make() output.
+  #
+  # Also depends on taxonomy_resolution_summary (defined in taxonomy_plan.R,
+  # which sources after this file, but {targets} resolves dependencies by
+  # target name across the whole pipeline, not file/list order - see
+  # R/functions/pipeline/taxonomy.R for what it computes). This means
+  # rendering the report now requires the taxonomy step (network access to
+  # TNRS) to have succeeded at least once; render_validation_report() itself
+  # still tolerates a NULL/missing summary if called directly.
   tar_target(
     name = validation_report,
     command = {
       validation_summary
-      render_validation_report(all_sites_cleaned, all_sites_validated, out_path = "docs/validation_report.md")
+      render_validation_report(
+        all_sites_cleaned, all_sites_validated, taxonomy_resolution_summary,
+        out_path = "docs/validation_report.md"
+      )
     },
     format = "file"
   )

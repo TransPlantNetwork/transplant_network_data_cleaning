@@ -73,3 +73,32 @@ harmonize_taxonomy <- function(merged_community) {
       by = "submitted_name"
     )
 }
+
+#' Per-site (Region) share of community rows/species whose SpeciesName TNRS
+#' could not confidently resolve to an accepted name (Accepted_name missing
+#' or blank, or no Overall_score returned at all) - a quick "how much of
+#' this site's data is unidentified/misspelled species" signal, independent
+#' of manually checking individual names. Feeds into the validation report
+#' (R/functions/validation_report.R) as an extra per-site metric, not a
+#' pass/fail check - a high % isn't necessarily wrong (small/rare taxa and
+#' genuinely field-unidentifiable specimens are expected), just worth eyeballing.
+#'
+#' @param merged_community_harmonized The `merged_community_harmonized`
+#'   target: merged community data (has a Region column identifying the
+#'   site) left-joined with `taxonomy_lookup` (Accepted_name, Overall_score, ...).
+compute_taxonomy_resolution <- function(merged_community_harmonized) {
+  merged_community_harmonized |>
+    dplyr::mutate(
+      unresolved = is.na(Accepted_name) | Accepted_name == "" | is.na(Overall_score)
+    ) |>
+    dplyr::group_by(site = Region) |>
+    dplyr::summarise(
+      n_species = dplyr::n_distinct(SpeciesName),
+      n_unresolved_species = dplyr::n_distinct(SpeciesName[unresolved]),
+      pct_unresolved_species = round(100 * n_unresolved_species / n_species, 1),
+      n_rows = dplyr::n(),
+      n_unresolved_rows = sum(unresolved),
+      pct_unresolved_rows = round(100 * n_unresolved_rows / n_rows, 1),
+      .groups = "drop"
+    )
+}
