@@ -208,6 +208,24 @@ standardize_columns <- function(raw, site_cfg) {
         destPlotID = as.character(destPlotID)
       ) |>
       dplyr::filter(!is.na(Cover)),
+    # Same pattern as DE_Susalps (biomass, origin x dest treatment matrix,
+    # reuses the existing loader as import_fn), but 3 sites and does include
+    # "Cold" (BT origin, low elevation, transplanted up to FP/SP).
+    DE_TransAlps = raw |>
+      dplyr::rename(Cover = biomass, Year = year, destPlotID = turfID) |>
+      dplyr::mutate(
+        Treatment = dplyr::case_when(
+          originSiteID == "BT" & destSiteID == "BT" ~ "LocalControl",
+          originSiteID == "BT" & destSiteID == "FP" ~ "Cold",
+          originSiteID == "BT" & destSiteID == "SP" ~ "Cold",
+          originSiteID == "FP" & destSiteID == "BT" ~ "Warm",
+          originSiteID == "FP" & destSiteID == "FP" ~ "LocalControl",
+          originSiteID == "SP" & destSiteID == "BT" ~ "Warm",
+          originSiteID == "SP" & destSiteID == "SP" ~ "LocalControl"
+        ),
+        destPlotID = as.character(destPlotID)
+      ) |>
+      dplyr::filter(!is.na(Cover)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

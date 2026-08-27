@@ -49,9 +49,14 @@ site_registry <- tibble::tribble(
   "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
   "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: 3-way origin x dest treatment matrix incl. Cold",
   "DE_Susalps",          "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix, no Other class",
+  "DE_TransAlps",        "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix incl. Cold",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
+  # (CH_Calanda, FR_AlpeHuez, FR_Lautaret, IT_MatschMazia1/2, NO_Norway also
+  # have legacy trait-cleaning code not yet wired into the general pipeline -
+  # see https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
+  # migrate their trait_fn alongside their community-data migration.)
   "CH_Calanda",          "excel",     "percent",   "legacy",             "clean_recipe_CH_Calanda",                list(),          "Bespoke duplicate-species fix; migrate later",
   "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
@@ -59,7 +64,6 @@ site_registry <- tibble::tribble(
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
   "IN_Kashmir",          "excel",     "percent",   "legacy",             "clean_recipe_IN_Kashmir",                list(),          "Two raw files bound together; cover-class midpoints",
-  "DE_TransAlps",        "mixed",     "biomass",   "legacy",             "clean_recipe_DE_TransAlps",              list(),          "Biomass, no Other cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together",
   "IT_MatschMazia1",     "sqlite",    "percent",   "legacy",             "clean_recipe_IT_MatschMazia1",           list(),          "Wide-format cover data (species as columns)",
@@ -313,6 +317,24 @@ site_pipeline_config <- list(
     ),
     gradient = "DE_Susalps",
     country = "Germany",
+    year_established = 2016,
+    plot_size_m2 = 0.09
+  ),
+  DE_TransAlps = list(
+    raw_path = "data/DE_TransAlps/DE_TransAlps_commdata/TransPlantNet_DACH_TransAlps_2016-2020.csv",
+    # Same reasoning as DE_Susalps: reuse the existing loader (filters to
+    # "ctrl", sums biomass per plot x species x year across harvest dates).
+    import_fn = "load_cover_DE_TransAlps",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    non_vascular = c("Moss", "Dead biomass"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "BT", 300, 11.581944, 49.921111,
+      "SP", 1850, 11.305278, 47.128889,
+      "FP", 2440, 8.421389, 46.576667
+    ),
+    gradient = "DE_TransAlps",
+    country = "Germany/Switzerland",
     year_established = 2016,
     plot_size_m2 = 0.09
   )
