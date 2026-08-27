@@ -260,6 +260,52 @@ standardize_columns <- function(raw, site_cfg) {
       ) |>
       dplyr::filter(!is.na(Cover)) |>
       dplyr::distinct(),
+    # Wide-format (species as columns), like SE_Abisko. Elevation encodes
+    # destSiteID (1000=Low, 1500=High); treat encodes Treatment
+    # (destControl/originControls=LocalControl, warmed=Warm). originSiteID
+    # depends on both. Raw UniqueID is plotID_YY - extract destPlotID by
+    # stripping the trailing year token, then rebuild UniqueID via
+    # id_components (Year_origin_dest_destPlotID) so it includes Year (the
+    # UniqueID-without-Year bug that previously broke Rel_Cover sums is
+    # documented in the legacy ImportClean script). Underscores in species
+    # column names become spaces. Reuses load_cover_IT_MatschMazia1 as
+    # import_fn.
+    IT_MatschMazia1 = {
+      id_cols <- c("UniqueID", "Elevation", "treat", "Year")
+      raw |>
+        dplyr::rename(Year = year, Elevation = elevation) |>
+        dplyr::mutate(dplyr::across(-dplyr::all_of(id_cols), as.character)) |>
+        tidyr::pivot_longer(
+          cols = -dplyr::all_of(id_cols),
+          names_to = "SpeciesName",
+          values_to = "Cover"
+        ) |>
+        dplyr::mutate(Cover = as.numeric(Cover)) |>
+        dplyr::filter(!is.na(Cover)) |>
+        dplyr::mutate(
+          SpeciesName = gsub("_", " ", SpeciesName, fixed = TRUE),
+          destSiteID = dplyr::case_when(
+            Elevation == 1000 ~ "Low",
+            Elevation == 1500 ~ "High"
+          ),
+          Treatment = dplyr::case_when(
+            treat == "destControl" ~ "LocalControl",
+            treat == "originControls" ~ "LocalControl",
+            treat == "warmed" ~ "Warm"
+          ),
+          originSiteID = dplyr::case_when(
+            Elevation == 1000 & treat == "destControl" ~ "Low",
+            Elevation == 1500 ~ "High",
+            treat == "warmed" ~ "High"
+          ),
+          destPlotID = sub("_[^_]+$", "", UniqueID),
+          destBlockID = NA_character_
+        ) |>
+        dplyr::select(
+          Year, destSiteID, originSiteID, destPlotID, destBlockID,
+          Treatment, SpeciesName, Cover
+        )
+    },
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }
