@@ -306,6 +306,48 @@ standardize_columns <- function(raw, site_cfg) {
           Treatment, SpeciesName, Cover
         )
     },
+    # Same wide-format pattern as IT_MatschMazia1 (sheet 2 of the same
+    # excel file via load_cover_IT_MatschMazia2), but elevations are
+    # 1500=Low / 1950=High, and the raw treat labels are originControl /
+    # originControls (both LocalControl - a known labeling inconsistency
+    # in the raw data) and warmed. originSiteID is derived from the
+    # already-computed Treatment (as in the legacy script), not from treat.
+    IT_MatschMazia2 = {
+      id_cols <- c("UniqueID", "Elevation", "treat", "Year")
+      raw |>
+        dplyr::rename(Year = year, Elevation = elevation) |>
+        dplyr::mutate(dplyr::across(-dplyr::all_of(id_cols), as.character)) |>
+        tidyr::pivot_longer(
+          cols = -dplyr::all_of(id_cols),
+          names_to = "SpeciesName",
+          values_to = "Cover"
+        ) |>
+        dplyr::mutate(Cover = as.numeric(Cover)) |>
+        dplyr::filter(!is.na(Cover)) |>
+        dplyr::mutate(
+          SpeciesName = gsub("_", " ", SpeciesName, fixed = TRUE),
+          destSiteID = dplyr::case_when(
+            Elevation == 1500 ~ "Low",
+            Elevation == 1950 ~ "High"
+          ),
+          Treatment = dplyr::case_when(
+            treat == "originControl" ~ "LocalControl",
+            treat == "originControls" ~ "LocalControl",
+            treat == "warmed" ~ "Warm"
+          ),
+          originSiteID = dplyr::case_when(
+            Elevation == 1500 & Treatment == "LocalControl" ~ "Low",
+            Elevation == 1950 ~ "High",
+            Treatment == "Warm" ~ "High"
+          ),
+          destPlotID = sub("_[^_]+$", "", UniqueID),
+          destBlockID = NA_character_
+        ) |>
+        dplyr::select(
+          Year, destSiteID, originSiteID, destPlotID, destBlockID,
+          Treatment, SpeciesName, Cover
+        )
+    },
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
   )
 }

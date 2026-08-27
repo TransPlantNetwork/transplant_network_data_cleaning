@@ -52,15 +52,16 @@ site_registry <- tibble::tribble(
   "DE_TransAlps",        "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Migrated: biomass, origin x dest treatment matrix incl. Cold",
   "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: site x code treatment logic + cover-class midpoint recoding",
   "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: wide-format species columns + elevation/treat Treatment derivation",
+  "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Migrated: same pattern as MatschMazia1 (1500/1950 m; originControl(s) labels)",
 
   # --- Remaining sites: registered for the unified pipeline/validation/database,
   #     cleaning logic still delegated to the original, trusted per-site code ---
-  # (CH_Calanda, FR_AlpeHuez, FR_Lautaret, IT_MatschMazia2, NO_Norway also
-  # have legacy trait-cleaning code not yet wired into the general pipeline -
-  # see https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
+  # (CH_Calanda, FR_AlpeHuez, FR_Lautaret, NO_Norway also have legacy
+  # trait-cleaning code not yet wired into the general pipeline - see
+  # https://github.com/TransPlantNetwork/transplant_network_data_cleaning/issues/8;
   # migrate their trait_fn alongside their community-data migration.
-  # IT_MatschMazia1 community is migrated; its trait_fn is still only in the
-  # legacy ImportClean script - same silent-drop situation as CN_Gongga/US_Colorado.)
+  # IT_MatschMazia1/2 community is migrated; trait_fn still only in the
+  # legacy ImportClean scripts - same silent-drop as CN_Gongga/US_Colorado.)
   "CH_Calanda",          "excel",     "percent",   "legacy",             "clean_recipe_CH_Calanda",                list(),          "Bespoke duplicate-species fix; migrate later",
   "NO_Ulvhaugen",        "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 1),   "SeedClim database + gradient filter g=1",
   "NO_Lavisdalen",       "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 2),   "SeedClim database + gradient filter g=2",
@@ -68,8 +69,7 @@ site_registry <- tibble::tribble(
   "NO_Skjellingahaugen", "sqlite",    "percent",   "legacy",             "clean_recipe_NO_Norway",                 list(g = 4),   "SeedClim database + gradient filter g=4",
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts converted to relative cover",
   "FR_AlpeHuez",         "excel",     "percent",   "legacy",             "clean_recipe_FR_AlpeHuez",               list(),          "Cover-class recoding + date parsing",
-  "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together",
-  "IT_MatschMazia2",     "excel",     "percent",   "legacy",             "clean_recipe_IT_MatschMazia2",           list(),          "Wide-format cover data (species as columns)"
+  "FR_Lautaret",         "csv",       "percent",   "legacy",             "clean_recipe_FR_Lautaret",               list(),          "Two raw sources (2017-2021 and 2022) bound together"
 )
 
 # --- Pilot site configuration (used only by sites with recipe_fn == NA) ---
@@ -376,6 +376,21 @@ site_pipeline_config <- list(
       "High", 1500, 10.5797899, 46.6862599
     ),
     gradient = "IT_MatschMazia1",
+    country = "Italy",
+    year_established = 2010,
+    plot_size_m2 = 0.25
+  ),
+  IT_MatschMazia2 = list(
+    raw_path = "data/IT_MatschMazia/IT_MatschMazia_commdata/VegData10-13_corr.csv.xlsx",
+    # Sheet 2 of the same file (gradient 2 = 1500/1950 m).
+    import_fn = "load_cover_IT_MatschMazia2",
+    id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    meta_table = tibble::tribble(
+      ~destSiteID, ~Elevation, ~Longitude, ~Latitude,
+      "Low", 1500, 10.5797899, 46.6862599,
+      "High", 1950, 10.59195399, 46.6916840
+    ),
+    gradient = "IT_MatschMazia2",
     country = "Italy",
     year_established = 2010,
     plot_size_m2 = 0.25
