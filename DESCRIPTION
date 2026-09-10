@@ -17,8 +17,7 @@ Imports:
     dataDownloader,
     yaml,
     TNRS,
-    digest
-Suggests:
+    digest,
     testthat,
     waldo,
     diffdf
