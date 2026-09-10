@@ -67,7 +67,7 @@ midpoint). **Change R code** when the steps themselves change (new column
 renames, a different reshape, a new treatment *rule*).
 
 Shared treatment *rules* in `derive_treatment()` (`site_pair_recode`,
-`turfid_substring`, `code_lookup`, `origin_dest_matrix`, `turf_code_site`,
+`code_lookup`, `origin_dest_matrix`, `turf_code_site`,
 `already_derived`) replace per-site `case_when` blocks; the rule is chosen
 in the registry, and any table it needs lives in `config/`.
 
@@ -75,7 +75,7 @@ in the registry, and any table it needs lives in `config/`.
 | --- | --- |
 | `config/site_metadata.csv` | Elevation / lon / lat per `destSiteID` (`site_id` column) |
 | `config/non_vascular.csv` | Species moved from community into cover (`site_id`, `SpeciesName`) |
-| `config/treatment_map.csv` | Key → Treatment for `site_pair_recode` / `code_lookup` |
+| `config/treatment_map.csv` | Key → Treatment for `site_pair_recode` / `code_lookup` (keys may be site pairs, turfID codes, or raw TTtreat values) |
 | `config/treatment_matrix.csv` | origin × dest → Treatment for `origin_dest_matrix` |
 | `config/cover_scales.csv` | Cover-class → midpoint percent (`scale_id`, `class`, `midpoint`) |
 | `config/species_recode.csv` | Per-site species name fixes before taxonomy |

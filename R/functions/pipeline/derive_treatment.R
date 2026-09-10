@@ -5,7 +5,6 @@
 derive_treatment <- function(site_data, site_cfg) {
   switch(site_cfg$treatment_rule,
     site_pair_recode     = derive_treatment_site_pair_recode(site_data, site_cfg),
-    turfid_substring     = derive_treatment_turfid_substring(site_data, site_cfg),
     code_lookup          = derive_treatment_code_lookup(site_data, site_cfg),
     origin_dest_matrix   = derive_treatment_origin_dest_matrix(site_data, site_cfg),
     turf_code_site       = derive_treatment_turf_code_site(site_data, site_cfg),
@@ -22,16 +21,9 @@ derive_treatment_site_pair_recode <- function(site_data, site_cfg) {
   site_data
 }
 
-#' Treatment derived from a code embedded in the plot/turf ID (already
-#' extracted into a `treatment_code` column by standardize_columns()).
-derive_treatment_turfid_substring <- function(site_data, site_cfg) {
-  site_data$Treatment <- dplyr::recode(site_data$treatment_code, !!!site_cfg$pipeline$treatment_map)
-  site_data$treatment_code <- NULL
-  site_data
-}
-
-#' Treatment derived from a direct code -> treatment lookup table
-#' (already extracted into a `treatment_code` column by standardize_columns()).
+#' Treatment from a code -> treatment lookup (`pipeline$treatment_map`).
+#' `standardize_columns()` must leave the raw code in `treatment_code`
+#' (e.g. a turfID substring for US_Colorado, or TTtreat for CN_Gongga / NO_*).
 derive_treatment_code_lookup <- function(site_data, site_cfg) {
   site_data$Treatment <- dplyr::recode(site_data$treatment_code, !!!site_cfg$pipeline$treatment_map)
   site_data$treatment_code <- NULL

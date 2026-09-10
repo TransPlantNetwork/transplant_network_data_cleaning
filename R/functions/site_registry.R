@@ -21,7 +21,7 @@
 #   site_id        - unique site identifier, matches legacy names (e.g. "CH_Lavey")
 #   raw_format     - one of "excel", "csv", "csv_delim", "sqlite", "rdata", "mixed"
 #   cover_unit     - "percent" (most sites) or "biomass" (no "Other" category added)
-#   treatment_rule - one of "site_pair_recode", "turfid_substring", "code_lookup",
+#   treatment_rule - one of "site_pair_recode", "code_lookup",
 #                    "origin_dest_matrix", "turf_code_site", "already_derived",
 #                    or "legacy" (legacy = handled entirely by recipe_fn)
 #   recipe_fn      - name of a wrapper in R/functions/sites/legacy_recipes.R, or NA
@@ -35,7 +35,7 @@ site_registry <- tibble::tribble(
 
   # --- General pipeline (recipe_fn = NA; config in site_pipeline_config) ---
   "CH_Lavey",            "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Excel; Other/Bare ground already in raw data (add_other = FALSE)",
-  "US_Colorado",         "csv",       "percent",   "turfid_substring",   NA_character_,                            list(),          "CSV; treatment from turfID substring",
+  "US_Colorado",         "csv",       "percent",   "code_lookup",        NA_character_,                            list(),          "CSV; treatment_code from turfID substring + code lookup",
   "CN_Gongga",           "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "Sqlite; treatment code lookup",
   "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Site x plot-number treatment logic",
   "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Treatment/originSiteID derived in the raw loader",
