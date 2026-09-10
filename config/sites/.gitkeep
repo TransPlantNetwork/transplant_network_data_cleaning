@@ -1,2 +1,0 @@
-# Sentinel for sites with no CSV library (US_Arizona legacy recipe path).
-# site_library_paths() returns this path so tar_map file targets stay uniform.

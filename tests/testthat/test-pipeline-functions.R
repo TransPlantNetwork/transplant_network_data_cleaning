@@ -129,7 +129,7 @@ test_that("load_excluded_treatments() and load_gradient_map() read network CSVs"
 })
 
 test_that("site libraries load metadata, non_vascular, and treatment tables", {
-  skip_if_not(dir.exists("config/sites/CH_Lavey"), "site libraries not present")
+  skip_if_not(file.exists("config/site_metadata.csv"), "site_metadata.csv missing")
   cfg <- get_site_config("CH_Lavey")
   expect_true(all(c("destSiteID", "Elevation", "Longitude", "Latitude") %in% names(cfg$pipeline$meta_table)))
   expect_true("Other" %in% cfg$pipeline$non_vascular)

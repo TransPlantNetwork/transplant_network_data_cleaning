@@ -6,10 +6,10 @@
 # build_ids, compute_rel_cover, split_cover_classes), configured via
 # `site_pipeline_config` below.
 #
-# Lookup tables that collaborators review line-by-line (metadata, non-vascular
-# names, treatment maps/matrices) live as committed CSVs under
-# config/sites/<site_id>/ and are loaded into site_pipeline_config at source
-# time. Structural fields (raw_path, import_fn, id_components, ...) stay here.
+# Lookup tables that collaborators review line-by-line live as committed
+# network-level CSVs under config/ (site_metadata, non_vascular, treatment_map,
+# treatment_matrix), each with a site_id column. Structural fields (raw_path,
+# import_fn, id_components, ...) stay in site_pipeline_config_base below.
 #
 # The one exception is US_Arizona (`recipe_fn = clean_recipe_US_Arizona`): its
 # community and cover tables come from two independent raw measurements
@@ -62,96 +62,115 @@ site_registry <- tibble::tribble(
 
 # --- Site library CSV helpers ------------------------------------------------
 
-#' Paths to committed lookup CSVs for one site (config/sites/<site_id>/*.csv).
-#' Used as a targets file dependency so editing a library invalidates that site.
-site_library_paths <- function(site_id, root = "config/sites") {
-  dir <- file.path(root, site_id)
-  if (!dir.exists(dir)) {
-    # Legacy recipe sites (e.g. US_Arizona) have no CSV library; track a
-    # sentinel so tar_map stays uniform across all site_id values.
-    return(file.path(root, ".gitkeep"))
-  }
-  paths <- list.files(dir, pattern = "\\.csv$", full.names = TRUE)
-  if (length(paths) == 0) file.path(root, ".gitkeep") else sort(paths)
+#' Network-level site library CSVs tracked as targets file dependencies.
+site_library_file_paths <- function() {
+  c(
+    "config/site_metadata.csv",
+    "config/non_vascular.csv",
+    "config/treatment_map.csv",
+    "config/treatment_matrix.csv"
+  )
 }
 
-load_site_metadata <- function(path) {
+load_site_metadata <- function(site_id, path = "config/site_metadata.csv") {
   tbl <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, colClasses = "character")
-  required <- c("destSiteID", "Elevation", "Longitude", "Latitude")
+  required <- c("site_id", "destSiteID", "Elevation", "Longitude", "Latitude")
   missing <- setdiff(required, names(tbl))
   if (length(missing) > 0) {
     stop("Site metadata '", path, "' is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
   }
+  rows <- tbl[tbl$site_id == site_id, , drop = FALSE]
+  if (nrow(rows) == 0) {
+    stop("No metadata rows for site '", site_id, "' in '", path, "'", call. = FALSE)
+  }
   tibble::tibble(
-    destSiteID = as.character(tbl$destSiteID),
-    Elevation = as.numeric(tbl$Elevation),
-    Longitude = as.numeric(tbl$Longitude),
-    Latitude = as.numeric(tbl$Latitude)
+    destSiteID = as.character(rows$destSiteID),
+    Elevation = as.numeric(rows$Elevation),
+    Longitude = as.numeric(rows$Longitude),
+    Latitude = as.numeric(rows$Latitude)
   )
 }
 
-load_site_non_vascular <- function(path) {
-  tbl <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
-  if (!"SpeciesName" %in% names(tbl)) {
-    stop("Non-vascular file '", path, "' must have a SpeciesName column", call. = FALSE)
+load_site_non_vascular <- function(site_id, path = "config/non_vascular.csv") {
+  if (!file.exists(path)) {
+    return(NULL)
   }
-  as.character(tbl$SpeciesName)
+  tbl <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, colClasses = "character")
+  required <- c("site_id", "SpeciesName")
+  missing <- setdiff(required, names(tbl))
+  if (length(missing) > 0) {
+    stop("Non-vascular file '", path, "' is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
+  }
+  rows <- tbl[tbl$site_id == site_id, , drop = FALSE]
+  if (nrow(rows) == 0) {
+    return(NULL)
+  }
+  as.character(rows$SpeciesName)
 }
 
-load_site_treatment_map <- function(path) {
+load_site_treatment_map <- function(site_id, path = "config/treatment_map.csv") {
+  if (!file.exists(path)) {
+    return(NULL)
+  }
   # Keys like "1"/"2" (CN_Gongga) must stay character, not integers.
   tbl <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, colClasses = "character")
-  required <- c("key", "Treatment")
+  required <- c("site_id", "key", "Treatment")
   missing <- setdiff(required, names(tbl))
   if (length(missing) > 0) {
     stop("Treatment map '", path, "' is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
   }
-  stats::setNames(as.character(tbl$Treatment), as.character(tbl$key))
+  rows <- tbl[tbl$site_id == site_id, , drop = FALSE]
+  if (nrow(rows) == 0) {
+    return(NULL)
+  }
+  stats::setNames(as.character(rows$Treatment), as.character(rows$key))
 }
 
-load_site_treatment_matrix <- function(path) {
+load_site_treatment_matrix <- function(site_id, path = "config/treatment_matrix.csv") {
+  if (!file.exists(path)) {
+    return(NULL)
+  }
   tbl <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, colClasses = "character")
-  required <- c("originSiteID", "destSiteID", "Treatment")
+  required <- c("site_id", "originSiteID", "destSiteID", "Treatment")
   missing <- setdiff(required, names(tbl))
   if (length(missing) > 0) {
     stop("Treatment matrix '", path, "' is missing columns: ", paste(missing, collapse = ", "), call. = FALSE)
   }
+  rows <- tbl[tbl$site_id == site_id, , drop = FALSE]
+  if (nrow(rows) == 0) {
+    return(NULL)
+  }
   tibble::tibble(
-    originSiteID = as.character(tbl$originSiteID),
-    destSiteID = as.character(tbl$destSiteID),
-    Treatment = as.character(tbl$Treatment)
+    originSiteID = as.character(rows$originSiteID),
+    destSiteID = as.character(rows$destSiteID),
+    Treatment = as.character(rows$Treatment)
   )
 }
 
-#' Attach optional CSV libraries from config/sites/<site_id>/ onto a pipeline list.
-attach_site_libraries <- function(site_id, pipeline, root = "config/sites") {
-  dir <- file.path(root, site_id)
-  meta_path <- file.path(dir, "metadata.csv")
-  if (!file.exists(meta_path)) {
-    stop("Site library missing required metadata.csv for '", site_id, "' at ", meta_path, call. = FALSE)
-  }
-  pipeline$meta_table <- load_site_metadata(meta_path)
+#' Attach optional CSV libraries onto a pipeline list for one site.
+attach_site_libraries <- function(site_id, pipeline) {
+  pipeline$meta_table <- load_site_metadata(site_id)
 
-  nv_path <- file.path(dir, "non_vascular.csv")
-  if (file.exists(nv_path)) {
-    pipeline$non_vascular <- load_site_non_vascular(nv_path)
+  non_vascular <- load_site_non_vascular(site_id)
+  if (!is.null(non_vascular)) {
+    pipeline$non_vascular <- non_vascular
   }
 
-  map_path <- file.path(dir, "treatment_map.csv")
-  if (file.exists(map_path)) {
-    pipeline$treatment_map <- load_site_treatment_map(map_path)
+  treatment_map <- load_site_treatment_map(site_id)
+  if (!is.null(treatment_map)) {
+    pipeline$treatment_map <- treatment_map
   }
 
-  matrix_path <- file.path(dir, "treatment_matrix.csv")
-  if (file.exists(matrix_path)) {
-    pipeline$treatment_matrix <- load_site_treatment_matrix(matrix_path)
+  treatment_matrix <- load_site_treatment_matrix(site_id)
+  if (!is.null(treatment_matrix)) {
+    pipeline$treatment_matrix <- treatment_matrix
   }
 
   pipeline
 }
 
 # --- Pipeline config for sites with recipe_fn == NA --------------------------
-# Structural fields only; lookup tables come from config/sites/<site_id>/.
+# Structural fields only; lookup tables come from config/*.csv (site_id column).
 
 site_pipeline_config_base <- list(
   CH_Lavey = list(

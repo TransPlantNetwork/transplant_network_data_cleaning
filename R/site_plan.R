@@ -23,18 +23,23 @@ build_site_plan <- function() {
       name = species_recode_file,
       command = "config/species_recode.csv",
       format = "file"
+    ),
+    tar_target(
+      name = site_library_files,
+      command = site_library_file_paths(),
+      format = "file"
     )
   )
 
   site_plan <- tarchetypes::tar_map(
     values = list(site_id = site_registry$site_id),
     names = site_id,
-    # Track config/sites/<site_id>/*.csv so library edits invalidate that site.
-    tar_target(site_library_files, site_library_paths(site_id), format = "file"),
+    # Shared config CSVs: editing any of them invalidates every site's clean
+    # (acceptable at this network size; keeps libraries easy to review).
     tar_target(cleaned, {
-      site_library_files
       cover_scales_file
       species_recode_file
+      site_library_files
       clean_site(get_site_config(site_id))
     }),
     tar_target(validated, validate_site(cleaned, get_site_config(site_id)))
