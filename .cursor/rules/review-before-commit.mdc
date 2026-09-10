@@ -1,0 +1,19 @@
+---
+description: Always let the user review changes before committing them to git
+alwaysApply: true
+---
+
+# Review before commit
+
+Never run `git commit` right after making code/content changes without the
+user explicitly reviewing and approving them first.
+
+- After making changes, summarize what changed (files touched, what/why)
+  and stop - do not commit in the same turn.
+- Only commit once the user has looked at the diff and given explicit
+  go-ahead (e.g. "commit this", "looks good, commit", "yes, go ahead").
+- If the user asks you to "implement X and commit it" in one request, still
+  pause for review before the commit step - implement, summarize the diff,
+  and wait for confirmation rather than committing automatically.
+- This applies to every commit, not just the first one in a session -
+  don't assume approval carries over to later, unrelated changes.
