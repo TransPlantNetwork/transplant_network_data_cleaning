@@ -31,7 +31,7 @@ standardize_columns <- function(raw, site_cfg) {
       dplyr::filter(TTtreat != "OTC") |>
       dplyr::rename(Year = year, treatment_code = TTtreat, Cover = cover, SpeciesName = speciesName) |>
       dplyr::mutate(
-        SpeciesName = dplyr::recode(SpeciesName, "Potentilla stenophylla var. emergens" = "Potentilla stenophylla")
+        SpeciesName = apply_species_recode(SpeciesName, "CN_Gongga")
       ) |>
       dplyr::filter(!is.na(Cover), Cover != 0),
     # Treatment depends jointly on `site` and `plot` (not a single code
@@ -72,7 +72,7 @@ standardize_columns <- function(raw, site_cfg) {
     US_Montana = raw |>
       dplyr::mutate(
         Cover = as.numeric(Cover),
-        SpeciesName = dplyr::recode(SpeciesName, bareground = "Bareground", Bare = "Bareground", litter = "Litter", moss = "Moss", rock = "Rock"),
+        SpeciesName = apply_species_recode(SpeciesName, "US_Montana"),
         destPlotID = paste(originSiteID, destSiteID, turfID, sep = "_")
       ) |>
       dplyr::filter(!is.na(Cover)) |>
@@ -103,18 +103,15 @@ standardize_columns <- function(raw, site_cfg) {
     # Treatment is a site x HIGH/LOW turf-code combination; originSiteID and
     # Treatment are derived by derive_treatment() (turf_code_site rule) from
     # the raw code left in treatment_code. Raw Cover is a 13-level cover
-    # class, not a percent, so it's converted to its class-midpoint percent
-    # here (same conversion the legacy code used).
+    # class, not a percent, so it's converted to midpoints via
+    # pipeline$cover_scale (config/cover_scales.csv).
     DE_Grainau = raw |>
       dplyr::rename(
         destSiteID = site, destBlockID = block, destPlotID = plot.ID,
         treatment_code = treatment, Year = year, SpeciesName = species.name, Cover = cover.class
       ) |>
       dplyr::mutate(
-        Cover = dplyr::recode(Cover,
-          `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
-          `8` = 45.5, `9` = 55.5, `10` = 65.5, `11` = 75.5, `12` = 85.5, `13` = 95.5
-        ),
+        Cover = apply_cover_scale(Cover, site_cfg$pipeline$cover_scale),
         destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
       ) |>
       dplyr::filter(!is.na(Cover)),
@@ -129,10 +126,7 @@ standardize_columns <- function(raw, site_cfg) {
         treatment_code = TREATMENT, Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
       ) |>
       dplyr::mutate(
-        Cover = dplyr::recode(Cover,
-          `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
-          `8` = 45.5, `9` = 55.5, `10` = 80
-        ),
+        Cover = apply_cover_scale(Cover, site_cfg$pipeline$cover_scale),
         destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
       ) |>
       dplyr::filter(!is.na(Cover)),
@@ -194,16 +188,8 @@ standardize_columns <- function(raw, site_cfg) {
         Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
       ) |>
       dplyr::mutate(
-        SpeciesName = dplyr::recode(SpeciesName,
-          "Fragaria spp" = "Fragaria sp.", "Ranunculus spp" = "Ranunculus sp.",
-          "Pinus spp" = "Pinus sp.", "CYANODON dACTYLON" = "Cyanodon dactylon",
-          "Hordeum spp" = "Hordeum sp.", "Rubus spp" = "Rubus sp.",
-          "Cyanodondactylon" = "Cyanodon dactylon"
-        ),
-        Cover = dplyr::recode(Cover,
-          `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
-          `8` = 45.5, `9` = 55.5, `10` = 70, `11` = 90
-        ),
+        SpeciesName = apply_species_recode(SpeciesName, "IN_Kashmir"),
+        Cover = apply_cover_scale(Cover, site_cfg$pipeline$cover_scale),
         destBlockID = as.character(destBlockID),
         destPlotID = paste(
           origin_site_from_turf_code(treatment_code), destSiteID, destBlockID,
@@ -448,12 +434,6 @@ standardize_columns <- function(raw, site_cfg) {
             destSiteID == "L" & subplot == "B" ~ "Warm",
             destSiteID == "G" & subplot == "B" ~ "Cold"
           ),
-          SpeciesName = dplyr::recode(
-            SpeciesName,
-            "Carex sempervirens subsp. sempervirens" = "Carex sempervirens",
-            "Pilosella officinarum" = "Pilosella",
-            "Patzkea paniculata subsp. paniculata" = "Patzkea paniculata"
-          ),
           SpeciesName = ifelse(
             is.na(stringr::word(SpeciesName, 2)),
             paste0(SpeciesName, " sp."),
@@ -471,7 +451,7 @@ standardize_columns <- function(raw, site_cfg) {
 
       dplyr::bind_rows(pinpoints, transalp) |>
         dplyr::mutate(
-          SpeciesName = ifelse(SpeciesName == "Undetermined sp.", "Undetermined", SpeciesName)
+          SpeciesName = apply_species_recode(SpeciesName, "FR_Lautaret")
         ) |>
         dplyr::filter(!is.na(Cover))
     },

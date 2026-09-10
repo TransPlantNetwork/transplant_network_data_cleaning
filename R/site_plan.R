@@ -13,6 +13,19 @@
 # _targets.R calls it (after tar_source() has sourced every R/ file).
 
 build_site_plan <- function() {
+  shared_library_plan <- list(
+    tar_target(
+      name = cover_scales_file,
+      command = "config/cover_scales.csv",
+      format = "file"
+    ),
+    tar_target(
+      name = species_recode_file,
+      command = "config/species_recode.csv",
+      format = "file"
+    )
+  )
+
   site_plan <- tarchetypes::tar_map(
     values = list(site_id = site_registry$site_id),
     names = site_id,
@@ -20,6 +33,8 @@ build_site_plan <- function() {
     tar_target(site_library_files, site_library_paths(site_id), format = "file"),
     tar_target(cleaned, {
       site_library_files
+      cover_scales_file
+      species_recode_file
       clean_site(get_site_config(site_id))
     }),
     tar_target(validated, validate_site(cleaned, get_site_config(site_id)))
@@ -41,5 +56,5 @@ build_site_plan <- function() {
     )
   )
 
-  c(site_plan, site_collect_plan)
+  c(shared_library_plan, site_plan, site_collect_plan)
 }

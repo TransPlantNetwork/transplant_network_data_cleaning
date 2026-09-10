@@ -146,6 +146,27 @@ test_that("site libraries load metadata, non_vascular, and treatment tables", {
   )
 })
 
+test_that("cover scales and species recode CSVs apply site/scale lookups", {
+  skip_if_not(file.exists("config/cover_scales.csv"), "cover_scales.csv missing")
+  skip_if_not(file.exists("config/species_recode.csv"), "species_recode.csv missing")
+  expect_equal(
+    unname(apply_cover_scale(c("1", "10", "13"), "grainau_13")),
+    c(0.5, 65.5, 95.5)
+  )
+  expect_equal(
+    unname(apply_cover_scale(c("10", "11"), "kashmir_11")),
+    c(70, 90)
+  )
+  expect_equal(
+    apply_species_recode(c("bareground", "Carex"), "US_Montana"),
+    c("Bareground", "Carex")
+  )
+  expect_equal(
+    apply_species_recode(c("Undetermined sp.", "Carex"), "FR_Lautaret"),
+    c("Undetermined", "Carex")
+  )
+})
+
 test_that("validate_site() flags Rel_Cover that does not sum to ~1", {
   skip_if_not(file.exists(file.path("..", "..", "config", "schema.yml")), "schema.yml not found relative to test dir")
   withr_wd <- setwd(file.path("..", ".."))

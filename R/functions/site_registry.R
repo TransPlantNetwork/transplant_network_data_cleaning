@@ -235,6 +235,7 @@ site_pipeline_config_base <- list(
   DE_Grainau = list(
     raw_path = "data/DE_Grainau/DE_Grainau_commdata/Vegetation 2014-17.xlsx",
     id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    cover_scale = "grainau_13",
     gradient = "DE_Grainau",
     country = "Germany",
     year_established = 2013,
@@ -244,6 +245,7 @@ site_pipeline_config_base <- list(
     raw_path = "data/CN_Damxung/CN_Damxung_commdata",
     import_fn = "ImportCommunity_CN_Damxung",
     id_components = c("Year", "originSiteID", "destSiteID", "destPlotID"),
+    cover_scale = "damxung_10",
     gradient = "CN_Damxung",
     country = "China",
     year_established = 2013,
@@ -279,6 +281,7 @@ site_pipeline_config_base <- list(
     raw_path = "data/IN_Kashmir/IN_Kashmir_commdata",
     import_fn = "ImportCommunity_IN_Kashmir",
     id_components = c("destPlotID", "Year"),
+    cover_scale = "kashmir_11",
     gradient = "IN_Kashmir",
     country = "India",
     year_established = 2013,
