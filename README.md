@@ -125,7 +125,7 @@ transplant_network_data_cleaning/
 │   ├── release_plan.R
 │   ├── functions/          # everything the plans call (pipeline steps, site
 │   │                       # registry, schema helpers, ImportData for checks, ...)
-│   └── old_code/           # previous Drake pipeline, kept for reference only
+│   └── drake_workflow/     # previous Drake pipeline (kept for comparison)
 ├── config/                 # committed lookup libraries (see section above)
 │   ├── schema.yml          # canonical schema for the common dataset
 │   ├── site_metadata.csv
@@ -160,11 +160,12 @@ transplant_network_data_cleaning/
   per-site import/clean scripts kept for comparison
   (`R/functions/ImportData/`), and the release bundler
   (`R/functions/release.R`).
-- `R/old_code/` - the previous Drake-based pipeline (`TransPlant_DrakePlan.R`,
+- `R/drake_workflow/` - the previous Drake-based pipeline (`TransPlant_DrakePlan.R`,
   `runsource_drakeplan.R`, `runsource_traitplan.R`) and folders it depended on
   that the new pipeline doesn't use or need (`CheckData/` manual QA plots,
   `ClimateData/` climate raster processing, `WrangleTaxaTraits/` old
-  taxize-based taxonomy/trait code). Kept for reference only, not sourced by
+  taxize-based taxonomy/trait code). Kept so the two workflows can be compared
+  (and to regenerate the legacy regression snapshot); not sourced by
   `_targets.R` or the tests.
 
 ### Adding or updating a site

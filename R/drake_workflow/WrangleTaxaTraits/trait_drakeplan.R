@@ -22,9 +22,9 @@ pkgconfig::set_config("drake::strings_in_dots" = "literals")
 pn <- . %>% print(n = Inf)
 
 # Source downstream trait scripts
-source("R/old_code/WrangleTaxaTraits/taxa_drakeplan.R") #for TaxaPlan (which cleans species names)
-source("R/old_code/WrangleTaxaTraits/try_traits.R") #for try traits
-source("R/old_code/WrangleTaxaTraits/merge_traits.R") #to merge site and try traits
+source("R/drake_workflow/WrangleTaxaTraits/taxa_drakeplan.R") #for TaxaPlan (which cleans species names)
+source("R/drake_workflow/WrangleTaxaTraits/try_traits.R") #for try traits
+source("R/drake_workflow/WrangleTaxaTraits/merge_traits.R") #to merge site and try traits
 
 # Import TRY Data
 ImportTRYDrakePlan <- drake_plan(

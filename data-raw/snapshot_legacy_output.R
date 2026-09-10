@@ -4,7 +4,7 @@
 # tests/testthat/test-regression-legacy.R and plan Section 6).
 #
 # It is intentionally NOT run automatically by targets/testthat: it depends
-# on the legacy Drake plan (R/old_code/TransPlant_DrakePlan.R) and the old
+# on the legacy Drake plan (R/drake_workflow/TransPlant_DrakePlan.R) and the old
 # `merge_comm_data()` inputs, which are being phased out as sites migrate.
 #
 # Usage:
@@ -13,7 +13,7 @@
 library(drake)
 library(tidyverse)
 
-source("R/old_code/TransPlant_DrakePlan.R")
+source("R/drake_workflow/TransPlant_DrakePlan.R")
 source("R/functions/merge_community.R")
 
 r_make(plan) # or drake::make(TransPlant_DrakePlan), depending on the plan object name

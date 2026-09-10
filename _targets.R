@@ -66,7 +66,7 @@ tar_option_set(
 file_in <- function(x) x
 
 # Run the R scripts needed by the pipeline. We source explicit paths rather
-# than all of R/ recursively, because R/old_code/ (the old Drake plan, plus
+# than all of R/ recursively, because R/drake_workflow/ (the old Drake plan, plus
 # manual QA plots, climate raster processing, and old taxize-based taxonomy
 # code) depends on packages (turfmapper, raster/sf, taxize, drake) that are
 # not part of this pipeline's dependencies and are not needed to run it.
