@@ -150,9 +150,10 @@ standardize_columns <- function(raw, site_cfg) {
       dplyr::filter(!is.na(Cover)),
     # Treatment is a 3x3 origin x destination elevation matrix (unlike
     # CH_Calanda2/DE_Grainau/CN_Damxung's 2-level warm/local-control, this
-    # one includes "Cold" for transplants moved to a lower/warmer site than
-    # their origin) - derived here directly rather than via a treatment_rule.
-    # Raw Coverage(%) is already a percent (no cover-class recoding needed).
+    # one includes "Cold" for transplants moved to a colder site than their
+    # origin). The matrix lives in site_pipeline_config$treatment_matrix and
+    # is applied by derive_treatment() (origin_dest_matrix rule). Raw
+    # Coverage(%) is already a percent (no cover-class recoding needed).
     # destSiteID/originSiteID == 3600 (a site not used in this experiment;
     # only present as noise in a few rows) are dropped.
     CN_Heibei = raw |>
@@ -160,17 +161,6 @@ standardize_columns <- function(raw, site_cfg) {
       dplyr::filter(destSiteID != 3600, originSiteID != 3600) |>
       dplyr::mutate(
         destSiteID = as.character(destSiteID), originSiteID = as.character(originSiteID),
-        Treatment = dplyr::case_when(
-          destSiteID == "3200" & originSiteID == "3200" ~ "LocalControl",
-          destSiteID == "3400" & originSiteID == "3400" ~ "LocalControl",
-          destSiteID == "3800" & originSiteID == "3800" ~ "LocalControl",
-          destSiteID == "3200" & originSiteID == "3400" ~ "Warm",
-          destSiteID == "3200" & originSiteID == "3800" ~ "Warm",
-          destSiteID == "3400" & originSiteID == "3800" ~ "Warm",
-          destSiteID == "3400" & originSiteID == "3200" ~ "Cold",
-          destSiteID == "3800" & originSiteID == "3200" ~ "Cold",
-          destSiteID == "3800" & originSiteID == "3400" ~ "Cold"
-        ),
         destPlotID = paste(originSiteID, destSiteID, replicate, sep = "_")
       ) |>
       dplyr::select(-replicate) |>
@@ -185,45 +175,21 @@ standardize_columns <- function(raw, site_cfg) {
     # originSiteID/destSiteID already come out of the raw loader
     # (load_cover_DE_Susalps, reused as site_pipeline_config$import_fn),
     # which also already sums biomass per plot x species x year (multiple
-    # harvest dates, "ctrl" treatment only) - only Treatment needs deriving
-    # here, from the same kind of origin x destination elevation matrix as
-    # CN_Heibei, but 4 sites and no "Cold" (all transplants go to equal or
-    # higher elevation: BT < FE < GW < EB).
+    # harvest dates, "ctrl" treatment only). Treatment is derived from the
+    # origin x dest elevation matrix in site_pipeline_config$treatment_matrix
+    # (4 sites, no Cold: all transplants go downhill or stay, BT < FE < GW < EB)
+    # via derive_treatment() (origin_dest_matrix rule).
     DE_Susalps = raw |>
       dplyr::rename(Cover = biomass, Year = year, destPlotID = turfID) |>
-      dplyr::mutate(
-        Treatment = dplyr::case_when(
-          originSiteID == "BT" & destSiteID == "BT" ~ "LocalControl",
-          originSiteID == "EB" & destSiteID == "BT" ~ "Warm",
-          originSiteID == "EB" & destSiteID == "EB" ~ "LocalControl",
-          originSiteID == "EB" & destSiteID == "FE" ~ "Warm",
-          originSiteID == "EB" & destSiteID == "GW" ~ "Warm",
-          originSiteID == "FE" & destSiteID == "BT" ~ "Warm",
-          originSiteID == "FE" & destSiteID == "FE" ~ "LocalControl",
-          originSiteID == "GW" & destSiteID == "BT" ~ "Warm",
-          originSiteID == "GW" & destSiteID == "FE" ~ "Warm",
-          originSiteID == "GW" & destSiteID == "GW" ~ "LocalControl"
-        ),
-        destPlotID = as.character(destPlotID)
-      ) |>
+      dplyr::mutate(destPlotID = as.character(destPlotID)) |>
       dplyr::filter(!is.na(Cover)),
-    # Same pattern as DE_Susalps (biomass, origin x dest treatment matrix,
-    # reuses the existing loader as import_fn), but 3 sites and does include
-    # "Cold" (BT origin, low elevation, transplanted up to FP/SP).
+    # Same pattern as DE_Susalps (biomass, origin x dest treatment matrix in
+    # site_pipeline_config, reuses the existing loader as import_fn), but 3
+    # sites and does include Cold (BT origin, low elevation, transplanted up
+    # to FP/SP).
     DE_TransAlps = raw |>
       dplyr::rename(Cover = biomass, Year = year, destPlotID = turfID) |>
-      dplyr::mutate(
-        Treatment = dplyr::case_when(
-          originSiteID == "BT" & destSiteID == "BT" ~ "LocalControl",
-          originSiteID == "BT" & destSiteID == "FP" ~ "Cold",
-          originSiteID == "BT" & destSiteID == "SP" ~ "Cold",
-          originSiteID == "FP" & destSiteID == "BT" ~ "Warm",
-          originSiteID == "FP" & destSiteID == "FP" ~ "LocalControl",
-          originSiteID == "SP" & destSiteID == "BT" ~ "Warm",
-          originSiteID == "SP" & destSiteID == "SP" ~ "LocalControl"
-        ),
-        destPlotID = as.character(destPlotID)
-      ) |>
+      dplyr::mutate(destPlotID = as.character(destPlotID)) |>
       dplyr::filter(!is.na(Cover)),
     # Same site x code Treatment derivation + cover-class midpoint recoding
     # pattern as DE_Grainau/CN_Damxung, with a couple of extra site-specific

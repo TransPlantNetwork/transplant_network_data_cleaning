@@ -44,9 +44,9 @@ site_registry <- tibble::tribble(
   "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Wide-format sheet pivoted to long in standardize_columns()",
   "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
   "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
-  "CN_Heibei",           "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "3-way origin x dest treatment matrix incl. Cold",
-  "DE_Susalps",          "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Biomass, origin x dest treatment matrix, no Other class",
-  "DE_TransAlps",        "mixed",     "biomass",   "already_derived",    NA_character_,                            list(),          "Biomass, origin x dest treatment matrix incl. Cold",
+  "CN_Heibei",           "excel",     "percent",   "origin_dest_matrix", NA_character_,                            list(),          "3-way origin x dest treatment matrix incl. Cold",
+  "DE_Susalps",          "mixed",     "biomass",   "origin_dest_matrix", NA_character_,                            list(),          "Biomass, origin x dest treatment matrix, no Other class",
+  "DE_TransAlps",        "mixed",     "biomass",   "origin_dest_matrix", NA_character_,                            list(),          "Biomass, origin x dest treatment matrix incl. Cold",
   "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
   "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Wide-format species columns + elevation/treat Treatment",
   "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Same pattern as MatschMazia1 (1500/1950 m; originControl(s))",
@@ -302,6 +302,20 @@ site_pipeline_config <- list(
       "3400", 3400, 101.331306, 37.665306,
       "3800", 3800, 101.36922199, 37.704917
     ),
+    # Origin x dest elevation matrix (includes Cold: origin moved uphill).
+    # Consumed by derive_treatment_origin_dest_matrix().
+    treatment_matrix = tibble::tribble(
+      ~originSiteID, ~destSiteID, ~Treatment,
+      "3200", "3200", "LocalControl",
+      "3400", "3400", "LocalControl",
+      "3800", "3800", "LocalControl",
+      "3400", "3200", "Warm",
+      "3800", "3200", "Warm",
+      "3800", "3400", "Warm",
+      "3200", "3400", "Cold",
+      "3200", "3800", "Cold",
+      "3400", "3800", "Cold"
+    ),
     gradient = "CN_Heibei",
     country = "China",
     year_established = 2007,
@@ -327,6 +341,22 @@ site_pipeline_config <- list(
       "GW", 860, 11.031010, 47.569750,
       "EB", 1260, 11.157730, 47.516340
     ),
+    # Origin x dest elevation matrix; all transplants go downhill or stay
+    # (BT < FE < GW < EB), so there is no Cold. Consumed by
+    # derive_treatment_origin_dest_matrix().
+    treatment_matrix = tibble::tribble(
+      ~originSiteID, ~destSiteID, ~Treatment,
+      "BT", "BT", "LocalControl",
+      "FE", "FE", "LocalControl",
+      "GW", "GW", "LocalControl",
+      "EB", "EB", "LocalControl",
+      "EB", "BT", "Warm",
+      "EB", "FE", "Warm",
+      "EB", "GW", "Warm",
+      "FE", "BT", "Warm",
+      "GW", "BT", "Warm",
+      "GW", "FE", "Warm"
+    ),
     gradient = "DE_Susalps",
     country = "Germany",
     year_established = 2016,
@@ -344,6 +374,18 @@ site_pipeline_config <- list(
       "BT", 300, 11.581944, 49.921111,
       "SP", 1850, 11.305278, 47.128889,
       "FP", 2440, 8.421389, 46.576667
+    ),
+    # Origin x dest elevation matrix including Cold (BT origin moved uphill
+    # to FP/SP). Consumed by derive_treatment_origin_dest_matrix().
+    treatment_matrix = tibble::tribble(
+      ~originSiteID, ~destSiteID, ~Treatment,
+      "BT", "BT", "LocalControl",
+      "FP", "FP", "LocalControl",
+      "SP", "SP", "LocalControl",
+      "FP", "BT", "Warm",
+      "SP", "BT", "Warm",
+      "BT", "FP", "Cold",
+      "BT", "SP", "Cold"
     ),
     gradient = "DE_TransAlps",
     country = "Germany/Switzerland",

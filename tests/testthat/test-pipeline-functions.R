@@ -55,9 +55,32 @@ test_that("derive_treatment() dispatches on treatment_rule", {
     treatment_rule = "code_lookup",
     pipeline = list(treatment_map = c("C" = "Control", "W" = "Warm"))
   )
-  dat <- tibble::tibble(treatment_code = c("C", "W"))
-  out <- derive_treatment(dat, site_cfg)
+  site_data <- tibble::tibble(treatment_code = c("C", "W"))
+  out <- derive_treatment(site_data, site_cfg)
   expect_equal(out$Treatment, c("Control", "Warm"))
+})
+
+test_that("derive_treatment() joins origin x dest treatment_matrix", {
+  site_cfg <- list(
+    site_id = "TEST",
+    treatment_rule = "origin_dest_matrix",
+    pipeline = list(
+      treatment_matrix = tibble::tribble(
+        ~originSiteID, ~destSiteID, ~Treatment,
+        "High", "Low", "Warm",
+        "High", "High", "LocalControl",
+        "Low", "High", "Cold"
+      )
+    )
+  )
+  site_data <- tibble::tibble(
+    originSiteID = c("High", "High", "Low", "Low"),
+    destSiteID = c("Low", "High", "High", "Low"),
+    Cover = 1:4
+  )
+  out <- derive_treatment(site_data, site_cfg)
+  expect_equal(out$Treatment, c("Warm", "LocalControl", "Cold", NA_character_))
+  expect_equal(out$Cover, 1:4)
 })
 
 test_that("validate_site() flags Rel_Cover that does not sum to ~1", {

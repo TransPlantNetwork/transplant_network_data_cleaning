@@ -4,10 +4,11 @@
 
 derive_treatment <- function(site_data, site_cfg) {
   switch(site_cfg$treatment_rule,
-    site_pair_recode = derive_treatment_site_pair_recode(site_data, site_cfg),
-    turfid_substring  = derive_treatment_turfid_substring(site_data, site_cfg),
-    code_lookup       = derive_treatment_code_lookup(site_data, site_cfg),
-    already_derived   = derive_treatment_already_derived(site_data, site_cfg),
+    site_pair_recode     = derive_treatment_site_pair_recode(site_data, site_cfg),
+    turfid_substring     = derive_treatment_turfid_substring(site_data, site_cfg),
+    code_lookup          = derive_treatment_code_lookup(site_data, site_cfg),
+    origin_dest_matrix   = derive_treatment_origin_dest_matrix(site_data, site_cfg),
+    already_derived      = derive_treatment_already_derived(site_data, site_cfg),
     stop("derive_treatment(): unknown treatment_rule '", site_cfg$treatment_rule, "'")
   )
 }
@@ -34,6 +35,41 @@ derive_treatment_code_lookup <- function(site_data, site_cfg) {
   site_data$Treatment <- dplyr::recode(site_data$treatment_code, !!!site_cfg$pipeline$treatment_map)
   site_data$treatment_code <- NULL
   site_data
+}
+
+#' Treatment derived from an originSiteID x destSiteID lookup table
+#' (`site_cfg$pipeline$treatment_matrix`). Used for sites whose Warm/Cold/
+#' LocalControl assignment is a matrix of elevation pairs (CN_Heibei,
+#' DE_Susalps, DE_TransAlps) rather than a single code column.
+derive_treatment_origin_dest_matrix <- function(site_data, site_cfg) {
+  treatment_matrix <- site_cfg$pipeline$treatment_matrix
+  if (is.null(treatment_matrix)) {
+    stop(
+      "derive_treatment(): treatment_rule 'origin_dest_matrix' requires ",
+      "pipeline$treatment_matrix for site '", site_cfg$site_id, "'"
+    )
+  }
+  required <- c("originSiteID", "destSiteID", "Treatment")
+  missing <- setdiff(required, names(treatment_matrix))
+  if (length(missing) > 0) {
+    stop(
+      "derive_treatment(): pipeline$treatment_matrix for site '", site_cfg$site_id,
+      "' is missing columns: ", paste(missing, collapse = ", ")
+    )
+  }
+
+  site_data$Treatment <- NULL
+  site_data$originSiteID <- as.character(site_data$originSiteID)
+  site_data$destSiteID <- as.character(site_data$destSiteID)
+  treatment_matrix <- treatment_matrix[required]
+  treatment_matrix$originSiteID <- as.character(treatment_matrix$originSiteID)
+  treatment_matrix$destSiteID <- as.character(treatment_matrix$destSiteID)
+
+  dplyr::left_join(
+    site_data,
+    treatment_matrix,
+    by = c("originSiteID", "destSiteID")
+  )
 }
 
 #' For sites where Treatment depends on more than one raw column at once
