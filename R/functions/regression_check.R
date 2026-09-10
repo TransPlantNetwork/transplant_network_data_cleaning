@@ -23,8 +23,8 @@ compare_to_legacy <- function(new_merged, legacy_path = "tests/fixtures/legacy_m
 
   legacy <- readRDS(legacy_path)
 
-  summarise_region <- function(dat) {
-    dat |>
+  summarise_region <- function(region_data) {
+    region_data |>
       dplyr::group_by(Region) |>
       dplyr::summarise(
         n_rows = dplyr::n(),

@@ -15,13 +15,13 @@ clean_site <- function(site_cfg) {
   }
 
   raw <- import_raw(site_cfg)
-  dat <- standardize_columns(raw, site_cfg)
-  dat <- derive_treatment(dat, site_cfg)
-  dat <- build_ids(dat, site_cfg)
-  dat <- collapse_duplicate_species(dat, site_cfg)
-  dat <- add_other_category(dat, site_cfg)
-  dat <- compute_rel_cover(dat, site_cfg)
-  split <- split_cover_classes(dat, site_cfg)
+  site_data <- standardize_columns(raw, site_cfg)
+  site_data <- derive_treatment(site_data, site_cfg)
+  site_data <- build_ids(site_data, site_cfg)
+  site_data <- collapse_duplicate_species(site_data, site_cfg)
+  site_data <- add_other_category(site_data, site_cfg)
+  site_data <- compute_rel_cover(site_data, site_cfg)
+  split <- split_cover_classes(site_data, site_cfg)
   comm <- split$comm
   cover <- split$cover
 
@@ -34,17 +34,17 @@ clean_site <- function(site_cfg) {
 #' Build the per-site meta table generically from a site's meta_table lookup
 #' (destSiteID -> Elevation/Longitude/Latitude) plus registry-level constants.
 build_meta <- function(comm, site_cfg) {
-  p <- site_cfg$pipeline
+  pipeline_cfg <- site_cfg$pipeline
   comm |>
     dplyr::select(destSiteID, Year) |>
     dplyr::group_by(destSiteID) |>
     dplyr::summarise(YearMin = min(Year), YearMax = max(Year), .groups = "drop") |>
-    dplyr::left_join(p$meta_table, by = "destSiteID") |>
+    dplyr::left_join(pipeline_cfg$meta_table, by = "destSiteID") |>
     dplyr::mutate(
-      Gradient = p$gradient,
-      Country = p$country,
-      YearEstablished = p$year_established,
-      PlotSize_m2 = p$plot_size_m2,
+      Gradient = pipeline_cfg$gradient,
+      Country = pipeline_cfg$country,
+      YearEstablished = pipeline_cfg$year_established,
+      PlotSize_m2 = pipeline_cfg$plot_size_m2,
       YearRange = YearMax - YearEstablished
     ) |>
     dplyr::select(

@@ -2,38 +2,38 @@
 # These are the small set of reusable strategies that cover all sites seen
 # in the network so far (see plan Section 2).
 
-derive_treatment <- function(dat, site_cfg) {
+derive_treatment <- function(site_data, site_cfg) {
   switch(site_cfg$treatment_rule,
-    site_pair_recode = derive_treatment_site_pair_recode(dat, site_cfg),
-    turfid_substring  = derive_treatment_turfid_substring(dat, site_cfg),
-    code_lookup       = derive_treatment_code_lookup(dat, site_cfg),
-    already_derived   = derive_treatment_already_derived(dat, site_cfg),
+    site_pair_recode = derive_treatment_site_pair_recode(site_data, site_cfg),
+    turfid_substring  = derive_treatment_turfid_substring(site_data, site_cfg),
+    code_lookup       = derive_treatment_code_lookup(site_data, site_cfg),
+    already_derived   = derive_treatment_already_derived(site_data, site_cfg),
     stop("derive_treatment(): unknown treatment_rule '", site_cfg$treatment_rule, "'")
   )
 }
 
 #' Treatment derived from a lookup keyed by "destSiteID_originSiteID" (or similar
 #' compound key already present in a single column before it is split).
-derive_treatment_site_pair_recode <- function(dat, site_cfg) {
-  key <- paste(dat$destSiteID, dat$originSiteID, sep = "_")
-  dat$Treatment <- unname(site_cfg$pipeline$treatment_map[key])
-  dat
+derive_treatment_site_pair_recode <- function(site_data, site_cfg) {
+  key <- paste(site_data$destSiteID, site_data$originSiteID, sep = "_")
+  site_data$Treatment <- unname(site_cfg$pipeline$treatment_map[key])
+  site_data
 }
 
 #' Treatment derived from a code embedded in the plot/turf ID (already
 #' extracted into a `treatment_code` column by standardize_columns()).
-derive_treatment_turfid_substring <- function(dat, site_cfg) {
-  dat$Treatment <- dplyr::recode(dat$treatment_code, !!!site_cfg$pipeline$treatment_map)
-  dat$treatment_code <- NULL
-  dat
+derive_treatment_turfid_substring <- function(site_data, site_cfg) {
+  site_data$Treatment <- dplyr::recode(site_data$treatment_code, !!!site_cfg$pipeline$treatment_map)
+  site_data$treatment_code <- NULL
+  site_data
 }
 
 #' Treatment derived from a direct code -> treatment lookup table
 #' (already extracted into a `treatment_code` column by standardize_columns()).
-derive_treatment_code_lookup <- function(dat, site_cfg) {
-  dat$Treatment <- dplyr::recode(dat$treatment_code, !!!site_cfg$pipeline$treatment_map)
-  dat$treatment_code <- NULL
-  dat
+derive_treatment_code_lookup <- function(site_data, site_cfg) {
+  site_data$Treatment <- dplyr::recode(site_data$treatment_code, !!!site_cfg$pipeline$treatment_map)
+  site_data$treatment_code <- NULL
+  site_data
 }
 
 #' For sites where Treatment depends on more than one raw column at once
@@ -43,12 +43,12 @@ derive_treatment_code_lookup <- function(dat, site_cfg) {
 #' site-specific case_when(). This rule is a no-op that just checks the
 #' column actually got set, so a typo in standardize_columns() fails loudly
 #' here instead of silently producing NA Treatments.
-derive_treatment_already_derived <- function(dat, site_cfg) {
-  if (is.null(dat[["Treatment"]])) {
+derive_treatment_already_derived <- function(site_data, site_cfg) {
+  if (is.null(site_data[["Treatment"]])) {
     stop(
       "derive_treatment(): treatment_rule 'already_derived' expects standardize_columns() ",
       "to have already set Treatment for site '", site_cfg$site_id, "'"
     )
   }
-  dat
+  site_data
 }

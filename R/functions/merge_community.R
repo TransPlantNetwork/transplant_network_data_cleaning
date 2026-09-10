@@ -1,10 +1,10 @@
 #### Code to merge all community data (with metadata) together ####
 
-merge_comm_data <- function(alldat) {
+merge_comm_data <- function(site_outputs) {
   
   
-  #fix up community dat
-  dat <- alldat |> 
+  #fix up community data
+  community_data <- site_outputs |> 
     map_df("community", .id='Region') |>
     ungroup() |>
     filter(!Treatment %in% c('NettedControl', 'Cold', 'Control')) |>
@@ -12,7 +12,7 @@ merge_comm_data <- function(alldat) {
                            "destPlotID", "Treatment", "turfID", "UniqueID", "SpeciesName", "Cover", "Rel_Cover"))) #Some unnecessary columns in NO and CH
   
   #add metadata to organize by elevations
-  meta <- alldat |> 
+  meta <- site_outputs |> 
     map("meta") |> 
     map(ungroup) |> 
     map_df(mutate, Gradient = as.character(Gradient), .id='Region') |> 
@@ -21,15 +21,15 @@ merge_comm_data <- function(alldat) {
     distinct()
   
   #bind
-  fulldat <- left_join(dat, meta, by=c('Region', 'destSiteID'))
+  community_with_meta <- left_join(community_data, meta, by=c('Region', 'destSiteID'))
   
   #sanity checks:
-  #unique(dat$destSiteID) %in% unique(meta$destSiteID) #all true
-  #unique(meta$destSiteID) %in% unique(dat$destSiteID) #all true
-  # fulldat[is.na(fulldat$Rel_Cover),] #no NA Rel_covers (cover yes, arizona only has rel_cover)
-  # dat[is.na(dat$Treatment),] #no NA treatments
-  #fulldat |> group_by(Region, destSiteID, Treatment) |> summarize(n=n()) |> View
+  #unique(community_data$destSiteID) %in% unique(meta$destSiteID) #all true
+  #unique(meta$destSiteID) %in% unique(community_data$destSiteID) #all true
+  # community_with_meta[is.na(community_with_meta$Rel_Cover),] #no NA Rel_covers (cover yes, arizona only has rel_cover)
+  # community_data[is.na(community_data$Treatment),] #no NA treatments
+  #community_with_meta |> group_by(Region, destSiteID, Treatment) |> summarize(n=n()) |> View
   
-  return(fulldat) 
+  return(community_with_meta) 
   
 }
