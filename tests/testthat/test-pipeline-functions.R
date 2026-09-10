@@ -109,6 +109,25 @@ test_that("load_taxonomy_overrides() reads from/to CSV as a named vector", {
   expect_equal(names(overrides), c("a", "b"))
 })
 
+test_that("load_excluded_treatments() and load_gradient_map() read network CSVs", {
+  excluded_path <- tempfile(fileext = ".csv")
+  gradient_path <- tempfile(fileext = ".csv")
+  on.exit(unlink(c(excluded_path, gradient_path)), add = TRUE)
+  utils::write.csv(
+    data.frame(treatment = c("Cold", "Control"), stringsAsFactors = FALSE),
+    excluded_path,
+    row.names = FALSE
+  )
+  utils::write.csv(
+    data.frame(from = c("1", "2"), to = c("NO_A", "NO_B"), stringsAsFactors = FALSE),
+    gradient_path,
+    row.names = FALSE
+  )
+  expect_equal(load_excluded_treatments(excluded_path), c("Cold", "Control"))
+  gradient_map <- load_gradient_map(gradient_path)
+  expect_equal(unname(gradient_map[c("1", "2")]), c("NO_A", "NO_B"))
+})
+
 test_that("validate_site() flags Rel_Cover that does not sum to ~1", {
   skip_if_not(file.exists(file.path("..", "..", "config", "schema.yml")), "schema.yml not found relative to test dir")
   withr_wd <- setwd(file.path("..", ".."))

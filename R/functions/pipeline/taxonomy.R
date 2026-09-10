@@ -63,6 +63,25 @@ harmonize_taxonomy <- function(merged_community,
     }
   )
 
+  # TNRS often returns NULL (and prints a message) when the API is unreachable,
+  # rather than throwing an error that tryCatch can catch.
+  if (is.null(resolved) || !is.data.frame(resolved)) {
+    stop(
+      "TNRS lookup failed: the API returned no results (NULL). ",
+      "Check network access to the TNRS service and re-run.",
+      call. = FALSE
+    )
+  }
+  needed <- c("Name_submitted", "Accepted_name", "Taxonomic_status", "Overall_score")
+  missing_cols <- setdiff(needed, names(resolved))
+  if (length(missing_cols) > 0) {
+    stop(
+      "TNRS lookup returned unexpected columns (missing: ",
+      paste(missing_cols, collapse = ", "), ").",
+      call. = FALSE
+    )
+  }
+
   tibble::tibble(SpeciesName = taxa, submitted_name = submitted_name) |>
     dplyr::left_join(
       resolved |>
