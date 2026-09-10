@@ -6,9 +6,16 @@
 # testable from the community-data cleaning logic.
 
 taxonomy_plan <- list(
+  # Track the overrides CSV so editing a mapping invalidates taxonomy_lookup
+  # without needing a code change.
+  tar_target(
+    name = taxonomy_overrides_file,
+    command = "config/taxonomy_overrides.csv",
+    format = "file"
+  ),
   tar_target(
     name = taxonomy_lookup,
-    command = harmonize_taxonomy(merged_community)
+    command = harmonize_taxonomy(merged_community, overrides_path = taxonomy_overrides_file)
   ),
   tar_target(
     name = merged_community_harmonized,

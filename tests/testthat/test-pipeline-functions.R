@@ -96,6 +96,19 @@ test_that("derive_treatment() recodes HIGH/LOW turf codes with destSiteID", {
   expect_null(out$treatment_code)
 })
 
+test_that("load_taxonomy_overrides() reads from/to CSV as a named vector", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  utils::write.csv(
+    data.frame(from = c("a", "b"), to = c("A", "B"), stringsAsFactors = FALSE),
+    path,
+    row.names = FALSE
+  )
+  overrides <- load_taxonomy_overrides(path)
+  expect_equal(unname(overrides[c("a", "b")]), c("A", "B"))
+  expect_equal(names(overrides), c("a", "b"))
+})
+
 test_that("validate_site() flags Rel_Cover that does not sum to ~1", {
   skip_if_not(file.exists(file.path("..", "..", "config", "schema.yml")), "schema.yml not found relative to test dir")
   withr_wd <- setwd(file.path("..", ".."))

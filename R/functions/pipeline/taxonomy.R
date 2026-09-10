@@ -2,49 +2,51 @@
 # Uses the TNRS package (https://github.com/EnquistLab/RTNRS) as the primary
 # resolver, replacing the old taxize::gnr_resolve() call in
 # R/WrangleTaxaTraits/clean_taxonomy.R. Manual overrides for known
-# misspellings/abbreviations are kept as a small lookup table so they remain
-# inspectable and can grow independently of the TNRS call itself.
+# misspellings/abbreviations live in config/taxonomy_overrides.csv so they
+# remain inspectable and can grow independently of the TNRS call itself.
 #
 # Requires network access and the TNRS package/API; wrapped in tryCatch so
 # tar_make() fails with a clear message rather than a cryptic API error if
 # the service is unreachable.
 
-manual_taxonomy_overrides <- c(
-  "Stellaria_wide_leaf" = "Stellaria umbellata",
-  "Entire Meconopsis" = "Meconopsis",
-  "Leuc. Vulg." = "Leucanthemum vulgare",
-  "unknown aster serrated" = "Aster",
-  "Unknown aster serrated" = "Aster",
-  "Haemarocalus fulva" = "Hemerocallis fulva",
-  "Dracophaleum" = "Dracocephalum",
-  "Antoxanthum alpinum" = "Anthoxanthum odoratum nipponicum",
-  "Anthoxanthum alpinum" = "Anthoxanthum odoratum nipponicum",
-  "Vaccinium gaultherioides" = "Vaccinium uliginosum",
-  "Listera ovata" = "Neottia ovata",
-  "Gentiana tenella" = "Gentianella tenella",
-  "Nigritella nigra" = "Gymnadenia nigra",
-  "Hieracium lactucela" = "Pilosella lactucella",
-  "Agrostis schraderiana" = "Agrostis agrostiflora",
-  "Festuca pratense" = "Festuca pratensis",
-  "Ran. acris subsp. Friesianus" = "Ranunculus acris subsp. friesianus",
-  "Symphyothricum_sp." = "Symphyotrichum",
-  "Orchidacea spec" = "Orchidaceae",
-  "Carex biggelowii" = "Carex bigelowii",
-  "Carex spec" = "Carex",
-  "Hol.lan" = "Holcus lanatus",
-  "Dia.med" = "Dianthus deltoides"
-)
+#' Load manual species-name overrides from a two-column CSV (`from`, `to`).
+#'
+#' @param path Path to config/taxonomy_overrides.csv (or a targets file path).
+#' @return Named character vector suitable for dplyr::recode().
+load_taxonomy_overrides <- function(path = "config/taxonomy_overrides.csv") {
+  if (!file.exists(path)) {
+    stop("Taxonomy overrides file not found: '", path, "'", call. = FALSE)
+  }
+  overrides <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
+  required <- c("from", "to")
+  missing <- setdiff(required, names(overrides))
+  if (length(missing) > 0) {
+    stop(
+      "Taxonomy overrides file '", path, "' is missing columns: ",
+      paste(missing, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (any(is.na(overrides$from) | overrides$from == "")) {
+    stop("Taxonomy overrides file '", path, "' has blank 'from' values", call. = FALSE)
+  }
+  stats::setNames(as.character(overrides$to), as.character(overrides$from))
+}
 
 #' Apply manual overrides, then resolve unique species names via TNRS.
 #'
 #' @param merged_community Output of merge_comm_data(): must have a SpeciesName column.
+#' @param overrides_path Path to the taxonomy overrides CSV (tracked as a
+#'   targets file dependency via taxonomy_plan.R).
 #' @return tibble with SpeciesName (original), submitted_name (after manual
 #'   overrides), Accepted_name, Taxonomic_status, Overall_score (from TNRS).
-harmonize_taxonomy <- function(merged_community) {
+harmonize_taxonomy <- function(merged_community,
+                               overrides_path = "config/taxonomy_overrides.csv") {
   taxa <- unique(merged_community$SpeciesName)
   taxa <- taxa[!is.na(taxa)]
 
-  submitted_name <- dplyr::recode(taxa, !!!manual_taxonomy_overrides)
+  overrides <- load_taxonomy_overrides(overrides_path)
+  submitted_name <- dplyr::recode(taxa, !!!overrides)
 
   if (!requireNamespace("TNRS", quietly = TRUE)) {
     stop(
