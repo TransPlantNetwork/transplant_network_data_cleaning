@@ -83,6 +83,19 @@ test_that("derive_treatment() joins origin x dest treatment_matrix", {
   expect_equal(out$Cover, 1:4)
 })
 
+test_that("derive_treatment() recodes HIGH/LOW turf codes with destSiteID", {
+  site_cfg <- list(site_id = "TEST", treatment_rule = "turf_code_site")
+  site_data <- tibble::tibble(
+    treatment_code = c("low_turf", "high_turf", "HIGH_TURF", "LOW_TURF"),
+    destSiteID = c("LOW", "LOW", "HIGH", "HIGH"),
+    Cover = 1:4
+  )
+  out <- derive_treatment(site_data, site_cfg)
+  expect_equal(out$originSiteID, c("LOW", "HIGH", "HIGH", "LOW"))
+  expect_equal(out$Treatment, c("LocalControl", "Warm", "LocalControl", NA_character_))
+  expect_null(out$treatment_code)
+})
+
 test_that("validate_site() flags Rel_Cover that does not sum to ~1", {
   skip_if_not(file.exists(file.path("..", "..", "config", "schema.yml")), "schema.yml not found relative to test dir")
   withr_wd <- setwd(file.path("..", ".."))

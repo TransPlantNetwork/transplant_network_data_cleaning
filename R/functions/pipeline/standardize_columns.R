@@ -100,23 +100,17 @@ standardize_columns <- function(raw, site_cfg) {
         names_to = "SpeciesName", values_to = "Cover"
       ) |>
       dplyr::mutate(Cover = as.numeric(Cover), destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)),
-    # Treatment is a site x code combination (same pattern as CH_Calanda2/
-    # US_Montana), so it - and originSiteID - are derived here directly; see
-    # derive_treatment_already_derived() in derive_treatment.R. Raw Cover is
-    # a 13-level cover class, not a percent, so it's converted to its
-    # class-midpoint percent here (same conversion the legacy code used).
+    # Treatment is a site x HIGH/LOW turf-code combination; originSiteID and
+    # Treatment are derived by derive_treatment() (turf_code_site rule) from
+    # the raw code left in treatment_code. Raw Cover is a 13-level cover
+    # class, not a percent, so it's converted to its class-midpoint percent
+    # here (same conversion the legacy code used).
     DE_Grainau = raw |>
       dplyr::rename(
         destSiteID = site, destBlockID = block, destPlotID = plot.ID,
-        Treatment = treatment, Year = year, SpeciesName = species.name, Cover = cover.class
+        treatment_code = treatment, Year = year, SpeciesName = species.name, Cover = cover.class
       ) |>
       dplyr::mutate(
-        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
-        Treatment = dplyr::case_when(
-          Treatment == "low_turf" & destSiteID == "LOW" ~ "LocalControl",
-          Treatment == "high_turf" & destSiteID == "LOW" ~ "Warm",
-          Treatment == "high_turf" & destSiteID == "HIGH" ~ "LocalControl"
-        ),
         Cover = dplyr::recode(Cover,
           `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
           `8` = 45.5, `9` = 55.5, `10` = 65.5, `11` = 75.5, `12` = 85.5, `13` = 95.5
@@ -124,7 +118,7 @@ standardize_columns <- function(raw, site_cfg) {
         destPlotID = as.character(destPlotID), destBlockID = as.character(destBlockID)
       ) |>
       dplyr::filter(!is.na(Cover)),
-    # Same site x code Treatment derivation + cover-class midpoint recoding
+    # Same turf_code_site Treatment derivation + cover-class midpoint recoding
     # pattern as DE_Grainau, just with a different (10-level) cover-class
     # scale and a multi-file (one xls/xlsx per year) raw layout - reuse the
     # existing loader (site_pipeline_config$import_fn) rather than adding
@@ -132,15 +126,9 @@ standardize_columns <- function(raw, site_cfg) {
     CN_Damxung = raw |>
       dplyr::rename(
         destSiteID = SITE, destBlockID = BLOCK, destPlotID = PLOT.ID,
-        Treatment = TREATMENT, Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
+        treatment_code = TREATMENT, Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
       ) |>
       dplyr::mutate(
-        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
-        Treatment = dplyr::case_when(
-          Treatment == "low_turf" & destSiteID == "LOW" ~ "LocalControl",
-          Treatment == "high_turf" & destSiteID == "LOW" ~ "Warm",
-          Treatment == "high_turf" & destSiteID == "HIGH" ~ "LocalControl"
-        ),
         Cover = dplyr::recode(Cover,
           `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
           `8` = 45.5, `9` = 55.5, `10` = 80
@@ -191,16 +179,18 @@ standardize_columns <- function(raw, site_cfg) {
       dplyr::rename(Cover = biomass, Year = year, destPlotID = turfID) |>
       dplyr::mutate(destPlotID = as.character(destPlotID)) |>
       dplyr::filter(!is.na(Cover)),
-    # Same site x code Treatment derivation + cover-class midpoint recoding
+    # Same turf_code_site Treatment derivation + cover-class midpoint recoding
     # pattern as DE_Grainau/CN_Damxung, with a couple of extra site-specific
     # fixes: a handful of misspelled/inconsistent species names, and (like
     # CN_Heibei) a few exact-duplicate raw rows to distinct() out before
     # collapse_duplicate_species() sums genuine repeats. Reuses the existing
     # loader (two excel files, 2014 and 2015, with fixed cell ranges to work
     # around spreadsheet drag errors in the raw data) as import_fn.
+    # destPlotID needs originSiteID, which is not set until derive_treatment();
+    # extract the turf-code prefix here so the plot ID can be assembled now.
     IN_Kashmir = raw |>
       dplyr::rename(
-        destSiteID = SITE, destBlockID = BLOCK, Treatment = TREATMENT,
+        destSiteID = SITE, destBlockID = BLOCK, treatment_code = TREATMENT,
         Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
       ) |>
       dplyr::mutate(
@@ -210,18 +200,15 @@ standardize_columns <- function(raw, site_cfg) {
           "Hordeum spp" = "Hordeum sp.", "Rubus spp" = "Rubus sp.",
           "Cyanodondactylon" = "Cyanodon dactylon"
         ),
-        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
-        Treatment = dplyr::case_when(
-          Treatment == "low_turf" & destSiteID == "LOW" ~ "LocalControl",
-          Treatment == "high_turf" & destSiteID == "LOW" ~ "Warm",
-          Treatment == "high_turf" & destSiteID == "HIGH" ~ "LocalControl"
-        ),
         Cover = dplyr::recode(Cover,
           `1` = 0.5, `2` = 1, `3` = 3.5, `4` = 8, `5` = 15.5, `6` = 25.5, `7` = 35.5,
           `8` = 45.5, `9` = 55.5, `10` = 70, `11` = 90
         ),
         destBlockID = as.character(destBlockID),
-        destPlotID = paste(originSiteID, destSiteID, destBlockID, sep = "_")
+        destPlotID = paste(
+          origin_site_from_turf_code(treatment_code), destSiteID, destBlockID,
+          sep = "_"
+        )
       ) |>
       dplyr::filter(!is.na(Cover)) |>
       dplyr::distinct(),
@@ -344,23 +331,24 @@ standardize_columns <- function(raw, site_cfg) {
         SpeciesName, Cover
       ) |>
       dplyr::distinct(),
-    # Same site x HIGH_TURF/LOW_TURF Treatment pattern as IN_Kashmir/DE_Grainau.
-    # Year is parsed from a messy Date column (Excel serials, m/d/y, ISO).
-    # Cover "+" recoded to 0.5; species names truncated to genus + epithet.
-    # Bare ground is a real non-vascular class; synthetic Other still added.
-    # distinct() then collapse_duplicate_species() match the legacy
-    # distinct + group_by/sum. Reuses ImportCommunity_FR_AlpeHuez as import_fn.
+    # Same HIGH_TURF/LOW_TURF pattern as IN_Kashmir/DE_Grainau
+    # (turf_code_site rule in derive_treatment()). Year is parsed from a
+    # messy Date column (Excel serials, m/d/y, ISO). Cover "+" recoded to
+    # 0.5; species names truncated to genus + epithet. Bare ground is a real
+    # non-vascular class; synthetic Other still added. distinct() then
+    # collapse_duplicate_species() match the legacy distinct + group_by/sum.
+    # Reuses ImportCommunity_FR_AlpeHuez as import_fn.
     FR_AlpeHuez = raw |>
       dplyr::select(site:cover.class, -plot, -species.name) |>
       dplyr::rename(
         SpeciesName = `corrected name`, Cover = cover.class,
         destSiteID = site, destBlockID = block, plotID = plot.ID,
-        Treatment = treatment, Date = date
+        treatment_code = treatment, Date = date
       ) |>
       dplyr::mutate(
         SpeciesName = sub("^(\\S*\\s+\\S+).*", "\\1", SpeciesName)
       ) |>
-      dplyr::filter(Treatment %in% c("HIGH_TURF", "LOW_TURF")) |>
+      dplyr::filter(treatment_code %in% c("HIGH_TURF", "LOW_TURF")) |>
       dplyr::mutate(
         # Parse dates without case_when(): dplyr evaluates every RHS, so
         # as.numeric() on slash dates like "6/16/2020" warned with
@@ -378,21 +366,18 @@ standardize_columns <- function(raw, site_cfg) {
           out[iso] <- lubridate::ymd(d[iso])
           out
         },
-        originSiteID = toupper(sub("(.*)_.*", "\\1", Treatment)),
-        Treatment = dplyr::case_when(
-          Treatment == "LOW_TURF" & destSiteID == "LOW" ~ "LocalControl",
-          Treatment == "HIGH_TURF" & destSiteID == "LOW" ~ "Warm",
-          Treatment == "HIGH_TURF" & destSiteID == "HIGH" ~ "LocalControl"
-        ),
         Year = lubridate::year(Date),
         Cover = dplyr::recode_values(as.character(Cover), "+" ~ "0.5", default = as.character(Cover)),
         Cover = as.numeric(Cover),
-        destPlotID = paste(originSiteID, destSiteID, plotID, sep = "_"),
+        destPlotID = paste(
+          origin_site_from_turf_code(treatment_code), destSiteID, plotID,
+          sep = "_"
+        ),
         destBlockID = as.character(destBlockID)
       ) |>
       dplyr::select(
-        Year, originSiteID, destSiteID, destBlockID, destPlotID,
-        Treatment, SpeciesName, Cover
+        Year, destSiteID, destBlockID, destPlotID,
+        treatment_code, SpeciesName, Cover
       ) |>
       dplyr::distinct() |>
       dplyr::filter(!is.na(Cover)),

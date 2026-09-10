@@ -8,6 +8,7 @@ derive_treatment <- function(site_data, site_cfg) {
     turfid_substring     = derive_treatment_turfid_substring(site_data, site_cfg),
     code_lookup          = derive_treatment_code_lookup(site_data, site_cfg),
     origin_dest_matrix   = derive_treatment_origin_dest_matrix(site_data, site_cfg),
+    turf_code_site       = derive_treatment_turf_code_site(site_data, site_cfg),
     already_derived      = derive_treatment_already_derived(site_data, site_cfg),
     stop("derive_treatment(): unknown treatment_rule '", site_cfg$treatment_rule, "'")
   )
@@ -70,6 +71,38 @@ derive_treatment_origin_dest_matrix <- function(site_data, site_cfg) {
     treatment_matrix,
     by = c("originSiteID", "destSiteID")
   )
+}
+
+#' Origin site encoded as the prefix of a HIGH/LOW turf code (low_turf,
+#' high_turf, HIGH_TURF, LOW_TURF). Used when destPlotID must be assembled
+#' in standardize_columns() before derive_treatment() runs.
+origin_site_from_turf_code <- function(treatment_code) {
+  toupper(sub("(.*)_.*", "\\1", as.character(treatment_code)))
+}
+
+#' Treatment derived from a HIGH/LOW turf code x destSiteID combination
+#' (DE_Grainau, CN_Damxung, IN_Kashmir, FR_AlpeHuez). standardize_columns()
+#' leaves the raw code in `treatment_code`; originSiteID is the code prefix
+#' (LOW vs HIGH) and Treatment is LocalControl (same elevation) or Warm
+#' (high turf moved to LOW). Case of the raw labels is ignored.
+derive_treatment_turf_code_site <- function(site_data, site_cfg) {
+  if (is.null(site_data[["treatment_code"]])) {
+    stop(
+      "derive_treatment(): treatment_rule 'turf_code_site' expects ",
+      "standardize_columns() to have set treatment_code for site '",
+      site_cfg$site_id, "'"
+    )
+  }
+  code <- tolower(as.character(site_data$treatment_code))
+  dest <- toupper(as.character(site_data$destSiteID))
+  site_data$originSiteID <- origin_site_from_turf_code(site_data$treatment_code)
+  site_data$Treatment <- dplyr::case_when(
+    code == "low_turf" & dest == "LOW" ~ "LocalControl",
+    code == "high_turf" & dest == "LOW" ~ "Warm",
+    code == "high_turf" & dest == "HIGH" ~ "LocalControl"
+  )
+  site_data$treatment_code <- NULL
+  site_data
 }
 
 #' For sites where Treatment depends on more than one raw column at once

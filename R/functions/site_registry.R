@@ -21,8 +21,8 @@
 #   raw_format     - one of "excel", "csv", "csv_delim", "sqlite", "rdata", "mixed"
 #   cover_unit     - "percent" (most sites) or "biomass" (no "Other" category added)
 #   treatment_rule - one of "site_pair_recode", "turfid_substring", "code_lookup",
-#                    "origin_dest_matrix", "already_derived", or "legacy"
-#                    (legacy = handled entirely by recipe_fn)
+#                    "origin_dest_matrix", "turf_code_site", "already_derived",
+#                    or "legacy" (legacy = handled entirely by recipe_fn)
 #   recipe_fn      - name of a wrapper in R/functions/sites/legacy_recipes.R, or NA
 #                    if the site uses the general pipeline
 #   recipe_args    - list-column of extra arguments to pass to recipe_fn (unused
@@ -42,16 +42,16 @@ site_registry <- tibble::tribble(
   "CH_Calanda2",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Site x plot-number treatment logic",
   "US_Montana",          "mixed",     "percent",   "already_derived",    NA_character_,                            list(),          "Treatment/originSiteID derived in the raw loader",
   "SE_Abisko",           "excel",     "percent",   "site_pair_recode",   NA_character_,                            list(),          "Wide-format sheet pivoted to long in standardize_columns()",
-  "DE_Grainau",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
-  "CN_Damxung",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
+  "DE_Grainau",          "excel",     "percent",   "turf_code_site",     NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
+  "CN_Damxung",          "excel",     "percent",   "turf_code_site",     NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
   "CN_Heibei",           "excel",     "percent",   "origin_dest_matrix", NA_character_,                            list(),          "3-way origin x dest treatment matrix incl. Cold",
   "DE_Susalps",          "mixed",     "biomass",   "origin_dest_matrix", NA_character_,                            list(),          "Biomass, origin x dest treatment matrix, no Other class",
   "DE_TransAlps",        "mixed",     "biomass",   "origin_dest_matrix", NA_character_,                            list(),          "Biomass, origin x dest treatment matrix incl. Cold",
-  "IN_Kashmir",          "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
+  "IN_Kashmir",          "excel",     "percent",   "turf_code_site",     NA_character_,                            list(),          "Site x code treatment + cover-class midpoint recoding",
   "IT_MatschMazia1",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Wide-format species columns + elevation/treat Treatment",
   "IT_MatschMazia2",     "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Same pattern as MatschMazia1 (1500/1950 m; originControl(s))",
   "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "veg_away/veg_home Treatment + Cetraria islandica cover class",
-  "FR_AlpeHuez",         "excel",     "percent",   "already_derived",    NA_character_,                            list(),          "Site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
+  "FR_AlpeHuez",         "excel",     "percent",   "turf_code_site",     NA_character_,                            list(),          "Site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Two raw sources (pinpoints + 2022) bound; Warm/Cold/LocalControl",
   "NO_Ulvhaugen",        "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Ulv/Alr/Fau)",
   "NO_Lavisdalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Lav/Hog/Vik)",
