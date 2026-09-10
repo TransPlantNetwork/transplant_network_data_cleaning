@@ -16,20 +16,23 @@ sequence of steps to reach the canonical, validated dataset:
 
 ```mermaid
 flowchart TD
-  registry["site registry (config)"] --> importStage["import_raw()"]
+  registry["site registry + config CSV libraries"] --> importStage["import_raw()"]
   importStage --> cleanStage["standardize_columns() / derive_treatment() / build_ids() / compute_rel_cover()"]
   cleanStage --> validateStage["validate_site() - v1 obvious checks"]
   validateStage --> mergeStage["merge_comm_data()"]
   mergeStage --> taxonomyStage["taxonomy harmonization via TNRS"]
   taxonomyStage --> regressionStage["compare against legacy snapshot"]
   regressionStage --> dbStage["write to canonical SQLite database"]
+  dbStage --> releaseStage["release: SQLite + CSV zip for Zenodo"]
   validateStage -->|failures| report["validation report (per site)"]
 ```
 
-- **Site registry** (`R/functions/site_registry.R`): one row per site,
-  documenting its raw data format, cover unit, treatment rule, and ID
-  components - the single place that captures what makes a site different,
-  instead of that logic being scattered across per-site scripts.
+- **Site registry** (`R/functions/site_registry.R`): one row per site for
+  structural differences (raw format, cover unit, treatment rule, ID
+  components), plus pointers into shared cleaning code.
+- **Config libraries** (`config/*.csv`): editable lookup tables
+  (metadata, treatments, cover scales, species renames, taxonomy overrides,
+  merge filters). See "Config libraries vs cleaning code" below.
 - **Import & clean** (`R/functions/pipeline/`): `import_raw()` reads the raw
   file (excel/csv/sqlite/...), then `standardize_columns()`,
   `derive_treatment()`, `build_ids()`, and `compute_rel_cover()` turn it into
@@ -40,16 +43,53 @@ flowchart TD
   regression and the output database" below).
 - **Merge**: all sites' cleaned community tables are combined into one
   dataset (`merge_comm_data()`).
-- **Taxonomy**: species names are resolved/harmonized once, after merging.
+- **Taxonomy**: species names are resolved/harmonized once, after merging
+  (with optional overrides from `config/taxonomy_overrides.csv`).
 - **Regression check**: the merged output is compared against a saved
   snapshot of the previous (Drake) pipeline's output, so refactoring
   sites can't silently lose or change data unnoticed.
-- **Database**: the final, validated, taxonomy-harmonized dataset is written
-  to a single SQLite database.
+- **Database & release**: the validated, taxonomy-harmonized dataset is
+  written to SQLite; the release step also exports the same tables as CSV
+  for Zenodo (see "Releasing a new data version").
+
+## Config libraries vs cleaning code
+
+Site differences are split on purpose:
+
+| Kind | Where it lives | Examples |
+| --- | --- | --- |
+| **Lookups** (reviewable tables) | `config/*.csv` | site elevations/coords, treatment maps, cover-class midpoints, species renames, taxonomy overrides, treatments dropped at merge |
+| **Process** (how data is reshaped) | `R/functions/pipeline/` (+ a few site loaders) | wide→long pivots, date parsing, binding two raw sources, turfID substrings, SeedClim filters |
+
+**Edit a CSV** when a collaborator would reasonably check the change row by
+row (a new Warm/Cold mapping, a misspelled species fix, a cover-class
+midpoint). **Change R code** when the steps themselves change (new column
+renames, a different reshape, a new treatment *rule*).
+
+Shared treatment *rules* in `derive_treatment()` (`site_pair_recode`,
+`turfid_substring`, `code_lookup`, `origin_dest_matrix`, `turf_code_site`,
+`already_derived`) replace per-site `case_when` blocks; the rule is chosen
+in the registry, and any table it needs lives in `config/`.
+
+| File | Role |
+| --- | --- |
+| `config/site_metadata.csv` | Elevation / lon / lat per `destSiteID` (`site_id` column) |
+| `config/non_vascular.csv` | Species moved from community into cover (`site_id`, `SpeciesName`) |
+| `config/treatment_map.csv` | Key → Treatment for `site_pair_recode` / `code_lookup` |
+| `config/treatment_matrix.csv` | origin × dest → Treatment for `origin_dest_matrix` |
+| `config/cover_scales.csv` | Cover-class → midpoint percent (`scale_id`, `class`, `midpoint`) |
+| `config/species_recode.csv` | Per-site species name fixes before taxonomy |
+| `config/taxonomy_overrides.csv` | Network-wide name overrides applied with TNRS |
+| `config/excluded_treatments.csv` | Treatments dropped when merging sites |
+| `config/gradient_map.csv` | Legacy numeric Gradient → `site_id` |
+| `config/schema.yml` | Canonical columns for the common dataset |
+
+Editing any of these invalidates cleaning (or merge/taxonomy) via `targets`
+file dependencies, so the next `tar_make()` rebuilds what depends on them.
 
 ## Using targets
 
-The pipeline is defined in `_targets.R`, which combines plan files from `R/` (`download_plan.R`, `site_plan.R`, `harmonization_plan.R`, `validation_plan.R`, `taxonomy_plan.R`, `regression_plan.R`, `database_plan.R`). Everything the plans call is in `R/functions/` (see "R folder layout" below).
+The pipeline is defined in `_targets.R`, which combines plan files from `R/` (`download_plan.R`, `site_plan.R`, `harmonization_plan.R`, `validation_plan.R`, `taxonomy_plan.R`, `regression_plan.R`, `database_plan.R`, `release_plan.R`). Everything the plans call is in `R/functions/` (see "R folder layout" below).
 
 To run the pipeline:
 
@@ -86,8 +126,17 @@ transplant_network_data_cleaning/
 │   ├── functions/          # everything the plans call (pipeline steps, site
 │   │                       # registry, schema helpers, ImportData for checks, ...)
 │   └── old_code/           # previous Drake pipeline, kept for reference only
-├── config/
-│   └── schema.yml          # canonical schema for the common dataset
+├── config/                 # committed lookup libraries (see section above)
+│   ├── schema.yml          # canonical schema for the common dataset
+│   ├── site_metadata.csv
+│   ├── non_vascular.csv
+│   ├── treatment_map.csv
+│   ├── treatment_matrix.csv
+│   ├── cover_scales.csv
+│   ├── species_recode.csv
+│   ├── taxonomy_overrides.csv
+│   ├── excluded_treatments.csv
+│   └── gradient_map.csv
 ├── data/                   # raw + downloaded site data (not tracked in git)
 ├── releases/               # dated raw+clean data bundles for Zenodo (not tracked in git)
 ├── docs/
@@ -102,13 +151,15 @@ transplant_network_data_cleaning/
   `harmonization_plan.R`, `validation_plan.R`, `taxonomy_plan.R`, `regression_plan.R`,
   `database_plan.R`, `release_plan.R`).
 - `R/functions/` - every function the plans call: the general pipeline steps
-  (`R/functions/pipeline/`), the site registry (`R/functions/site_registry.R`),
-  schema/data-dictionary helpers (`R/functions/schema.R`), merging
-  (`R/functions/merge_community.R`), the regression check
-  (`R/functions/regression_check.R`), the `US_Arizona` recipe wrapper
-  (`R/functions/sites/legacy_recipes.R`), the original per-site import/clean
-  scripts kept for comparison (`R/functions/ImportData/`), and the release
-  bundler (`R/functions/release.R`).
+  (`R/functions/pipeline/`, including `lookup_helpers.R` for cover scales /
+  species recodes), the site registry and CSV library loaders
+  (`R/functions/site_registry.R`), schema/data-dictionary helpers
+  (`R/functions/schema.R`), merging (`R/functions/merge_community.R`), the
+  regression check (`R/functions/regression_check.R`), the `US_Arizona`
+  recipe wrapper (`R/functions/sites/legacy_recipes.R`), the original
+  per-site import/clean scripts kept for comparison
+  (`R/functions/ImportData/`), and the release bundler
+  (`R/functions/release.R`).
 - `R/old_code/` - the previous Drake-based pipeline (`TransPlant_DrakePlan.R`,
   `runsource_drakeplan.R`, `runsource_traitplan.R`) and folders it depended on
   that the new pipeline doesn't use or need (`CheckData/` manual QA plots,
@@ -118,17 +169,22 @@ transplant_network_data_cleaning/
 
 ### Adding or updating a site
 
-Each site is one row in `site_registry` (`R/functions/site_registry.R`) - this is
-the single place that documents a site's raw data format, cover unit, treatment
-rule, and ID components, and it drives `tar_map()` in `R/site_plan.R` to create
-that site's targets automatically (`cleaned_<site_id>`, `validated_<site_id>`).
+Each site is one row in `site_registry` (`R/functions/site_registry.R`) - this
+documents raw format, cover unit, treatment rule, and ID components, and drives
+`tar_map()` in `R/site_plan.R` (`cleaned_<site_id>`, `validated_<site_id>`).
 
 Almost every site is cleaned by the shared functions in `R/functions/pipeline/`
 (`import_raw`, `standardize_columns`, `derive_treatment`, `build_ids`,
-`split_cover_classes`, `compute_rel_cover`), configured via
-`site_pipeline_config` in the same registry file. Adding a new site like this
-means adding a registry row plus a `site_pipeline_config` entry (and a
-`standardize_columns()` case when column renaming is site-specific).
+`split_cover_classes`, `compute_rel_cover`). For a typical new site:
+
+1. Add a row to `site_registry` and a structural entry in
+   `site_pipeline_config_base` (raw path, `import_fn` if needed, ID components,
+   gradient / country / plot size, etc.).
+2. Add rows to the relevant `config/*.csv` libraries (at least
+   `site_metadata.csv`; plus treatment map/matrix, non-vascular list, cover
+   scale, or species recodes as needed).
+3. Add a `standardize_columns()` case only when reshape / rename logic is
+   site-specific (lookups belong in CSVs, not in that case).
 
 **Why `US_Arizona` is not on the general pipeline.** Every other site builds
 `community` and `cover` from the *same* long table: vascular species stay in
@@ -167,8 +223,9 @@ and is not yet wired into the general pipeline.
   renders it to `docs/data_dictionary.md`.
 - **Taxonomy** (`R/taxonomy_plan.R`): resolves species names via the
   [TNRS package](https://github.com/EnquistLab/RTNRS) after merging, separate from
-  per-site cleaning. `taxonomy_resolution_summary` (`compute_taxonomy_resolution()`
-  in `R/functions/pipeline/taxonomy.R`) turns that into a per-site % of
+  per-site cleaning. Manual overrides live in `config/taxonomy_overrides.csv`.
+  `taxonomy_resolution_summary` (`compute_taxonomy_resolution()` in
+  `R/functions/pipeline/taxonomy.R`) turns that into a per-site % of
   species/rows TNRS couldn't confidently match - not a pass/fail check (some
   genuinely unidentifiable field records are expected), just a quick signal for
   "does this site have an unusual number of unresolved/misspelled names".
@@ -176,10 +233,11 @@ and is not yet wired into the general pipeline.
   compares the new pipeline's merged output against a saved snapshot of the old
   Drake pipeline's output, once that snapshot has been generated.
 - **Database** (`R/database_plan.R`): writes the final merged, harmonized dataset
-  to `data/transplant_network_clean.sqlite`.
+  to `data/transplant_network_clean.sqlite` (canonical working product).
 - **Release** (`R/release_plan.R`, `R/functions/release.R`): bundles dated raw +
   clean data files under `releases/` (not tracked in git) for manual upload to
-  a data repository like Zenodo - see "Releasing a new data version" below.
+  a data repository like Zenodo - including both SQLite and a CSV zip of the
+  same tables - see "Releasing a new data version" below.
 
 ## Releasing a new data version
 
