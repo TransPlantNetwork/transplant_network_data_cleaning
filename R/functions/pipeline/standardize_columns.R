@@ -31,7 +31,7 @@ standardize_columns <- function(raw, site_cfg) {
       dplyr::filter(TTtreat != "OTC") |>
       dplyr::rename(Year = year, treatment_code = TTtreat, Cover = cover, SpeciesName = speciesName) |>
       dplyr::mutate(
-        SpeciesName = apply_species_recode(SpeciesName, "CN_Gongga")
+        SpeciesName = apply_species_recode(SpeciesName, site_cfg$site_id)
       ) |>
       dplyr::filter(!is.na(Cover), Cover != 0),
     # Treatment depends jointly on `site` and `plot` (not a single code
@@ -72,7 +72,7 @@ standardize_columns <- function(raw, site_cfg) {
     US_Montana = raw |>
       dplyr::mutate(
         Cover = as.numeric(Cover),
-        SpeciesName = apply_species_recode(SpeciesName, "US_Montana"),
+        SpeciesName = apply_species_recode(SpeciesName, site_cfg$site_id),
         destPlotID = paste(originSiteID, destSiteID, turfID, sep = "_")
       ) |>
       dplyr::filter(!is.na(Cover)) |>
@@ -188,7 +188,7 @@ standardize_columns <- function(raw, site_cfg) {
         Year = YEAR, SpeciesName = `Species name`, Cover = `cover class`
       ) |>
       dplyr::mutate(
-        SpeciesName = apply_species_recode(SpeciesName, "IN_Kashmir"),
+        SpeciesName = apply_species_recode(SpeciesName, site_cfg$site_id),
         Cover = apply_cover_scale(Cover, site_cfg$pipeline$cover_scale),
         destBlockID = as.character(destBlockID),
         destPlotID = paste(
@@ -451,7 +451,7 @@ standardize_columns <- function(raw, site_cfg) {
 
       dplyr::bind_rows(pinpoints, transalp) |>
         dplyr::mutate(
-          SpeciesName = apply_species_recode(SpeciesName, "FR_Lautaret")
+          SpeciesName = apply_species_recode(SpeciesName, site_cfg$site_id)
         ) |>
         dplyr::filter(!is.na(Cover))
     },
