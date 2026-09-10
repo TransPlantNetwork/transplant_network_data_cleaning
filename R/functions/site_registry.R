@@ -51,10 +51,10 @@ site_registry <- tibble::tribble(
   "CH_Calanda",          "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "veg_away/veg_home Treatment + Cetraria islandica cover class",
   "FR_AlpeHuez",         "excel",     "percent",   "turf_code_site",     NA_character_,                            list(),          "Site x HIGH/LOW_TURF Treatment + Bare ground + date parsing",
   "FR_Lautaret",         "csv",       "percent",   "already_derived",    NA_character_,                            list(),          "Two raw sources (pinpoints + 2022) bound; Warm/Cold/LocalControl",
-  "NO_Ulvhaugen",        "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Ulv/Alr/Fau)",
-  "NO_Lavisdalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Lav/Hog/Vik)",
-  "NO_Gudmedalen",       "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Gud/Ram/Arh)",
-  "NO_Skjellingahaugen", "sqlite",    "percent",   "already_derived",    NA_character_,                            list(),          "SeedClim sqlite + destSiteID filter (Skj/Ves/Ovs)",
+  "NO_Ulvhaugen",        "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "SeedClim sqlite; TTC/TT2 code lookup; destSiteID filter (Ulv/Alr/Fau)",
+  "NO_Lavisdalen",       "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "SeedClim sqlite; TTC/TT2 code lookup; destSiteID filter (Lav/Hog/Vik)",
+  "NO_Gudmedalen",       "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "SeedClim sqlite; TTC/TT2 code lookup; destSiteID filter (Gud/Ram/Arh)",
+  "NO_Skjellingahaugen", "sqlite",    "percent",   "code_lookup",        NA_character_,                            list(),          "SeedClim sqlite; TTC/TT2 code lookup; destSiteID filter (Skj/Ves/Ovs)",
 
   # --- Recipe path (not a fit for split_cover_classes; see legacy_recipes.R) ---
   "US_Arizona",          "excel",     "percent",   "legacy",             "clean_recipe_US_Arizona",                list(),          "Individual counts + separate % green cover file; kept on recipe_fn"

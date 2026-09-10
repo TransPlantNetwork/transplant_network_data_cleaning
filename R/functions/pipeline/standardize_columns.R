@@ -457,7 +457,8 @@ standardize_columns <- function(raw, site_cfg) {
     },
     # Shared SeedClim cleaning for all four NO_* gradients. Raw load (via
     # load_cover_NO_Norway_pipeline) already applies stomping/botanist cover
-    # corrections. Here: keep TTC/TT2 only, drop 2016, build destPlotID from
+    # corrections. Here: keep TTC/TT2 only (Treatment via code_lookup +
+    # config/treatment_map.csv), drop 2016, build destPlotID from
     # destBlock_originBlock_turfID, filter to this gradient's three sites
     # (site_cfg$pipeline$sites). Fall-through cases share one body.
     NO_Ulvhaugen =,
@@ -469,23 +470,22 @@ standardize_columns <- function(raw, site_cfg) {
         -precipitation_level, -notbad, -recorder
       ) |>
       dplyr::rename(
-        originSiteID = siteID, originBlockID = blockID, Treatment = TTtreat,
+        originSiteID = siteID, originBlockID = blockID, treatment_code = TTtreat,
         Cover = cover, SpeciesName = species, Year = year
       ) |>
       dplyr::mutate(
         destPlotID = paste(destBlockID, originBlockID, turfID, sep = "_"),
-        Treatment = dplyr::recode(Treatment, TTC = "LocalControl", TT2 = "Warm"),
         destPlotID = as.character(destPlotID),
         destBlockID = as.character(destBlockID)
       ) |>
       dplyr::filter(
-        Treatment %in% c("LocalControl", "Warm"),
+        treatment_code %in% c("TTC", "TT2"),
         Year != 2016,
         destSiteID %in% site_cfg$pipeline$sites
       ) |>
       dplyr::select(
         Year, originSiteID, destSiteID, destBlockID, destPlotID,
-        Treatment, SpeciesName, Cover
+        treatment_code, SpeciesName, Cover
       ) |>
       dplyr::filter(!is.na(Cover)),
     stop("standardize_columns(): no column mapping defined for site '", site_cfg$site_id, "'")
