@@ -16,7 +16,12 @@ build_site_plan <- function() {
   site_plan <- tarchetypes::tar_map(
     values = list(site_id = site_registry$site_id),
     names = site_id,
-    tar_target(cleaned, clean_site(get_site_config(site_id))),
+    # Track config/sites/<site_id>/*.csv so library edits invalidate that site.
+    tar_target(site_library_files, site_library_paths(site_id), format = "file"),
+    tar_target(cleaned, {
+      site_library_files
+      clean_site(get_site_config(site_id))
+    }),
     tar_target(validated, validate_site(cleaned, get_site_config(site_id)))
   )
 

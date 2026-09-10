@@ -128,6 +128,24 @@ test_that("load_excluded_treatments() and load_gradient_map() read network CSVs"
   expect_equal(unname(gradient_map[c("1", "2")]), c("NO_A", "NO_B"))
 })
 
+test_that("site libraries load metadata, non_vascular, and treatment tables", {
+  skip_if_not(dir.exists("config/sites/CH_Lavey"), "site libraries not present")
+  cfg <- get_site_config("CH_Lavey")
+  expect_true(all(c("destSiteID", "Elevation", "Longitude", "Latitude") %in% names(cfg$pipeline$meta_table)))
+  expect_true("Other" %in% cfg$pipeline$non_vascular)
+  expect_equal(unname(cfg$pipeline$treatment_map[["CRE_RIO"]]), "Warm")
+
+  heibei <- get_site_config("CN_Heibei")
+  expect_true(all(c("originSiteID", "destSiteID", "Treatment") %in% names(heibei$pipeline$treatment_matrix)))
+  expect_equal(
+    heibei$pipeline$treatment_matrix$Treatment[
+      heibei$pipeline$treatment_matrix$originSiteID == "3400" &
+        heibei$pipeline$treatment_matrix$destSiteID == "3200"
+    ],
+    "Warm"
+  )
+})
+
 test_that("validate_site() flags Rel_Cover that does not sum to ~1", {
   skip_if_not(file.exists(file.path("..", "..", "config", "schema.yml")), "schema.yml not found relative to test dir")
   withr_wd <- setwd(file.path("..", ".."))

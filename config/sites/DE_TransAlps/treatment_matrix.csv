@@ -1,0 +1,8 @@
+"originSiteID","destSiteID","Treatment"
+"BT","BT","LocalControl"
+"FP","FP","LocalControl"
+"SP","SP","LocalControl"
+"FP","BT","Warm"
+"SP","BT","Warm"
+"BT","FP","Cold"
+"BT","SP","Cold"
